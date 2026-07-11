@@ -16,8 +16,6 @@ Instead, it hands the batch off to this app:
    AttachmentIndex, Link`) to Downloads instead. Opening that CSV with
    this app does the same download.
 
-Repo: https://github.com/terminal-mk/downloader
-
 > The `terminal.mk-dl://` scheme itself is a fixed contract with the
 > website's JS and isn't renamed here — only the app's own display name
 > (**Terminal MK - Downloader**) and executable names changed.
