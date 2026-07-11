@@ -26,7 +26,7 @@ Grab the package for your OS from the [Releases page](https://github.com/termina
 
 | OS | File | Link |
 |---|---|---|
-| Linux (.deb, pure-Python, no build step) | `terminal.mk-dl_1.1.3_all.deb` | [Download](https://github.com/terminal-mk/downloader/blob/main/releases/latest/download/terminal.mk-dl_1.1.3_all.deb) |
+| Linux (.deb, pure-Python, no build step) | `terminal.mk-dl_1.1.3_all.deb` | [Download](blob:https://github.com/fb4fcc7c-55dc-4957-8138-361657eb6c1b) |
 | Linux (.rpm) | `terminal.mk-dl-1.1.3-1.x86_64.rpm` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-1.1.3-1.x86_64.rpm) |
 | Windows (.exe) | `terminal.mk-dl-gui.exe` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-gui.exe) |
 | macOS (.app, zipped) | `terminal.mk-dl.app.zip` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl.app.zip) |
