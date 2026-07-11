@@ -1,5 +1,5 @@
 Name:           terminalmk-downloader
-Version:        1.0.0
+Version:        1.1.3
 Release:        1%{?dist}
 Summary:        Batch downloader for terminal.mk filing attachments
 License:        MIT
@@ -41,5 +41,8 @@ EOF
 update-desktop-database /usr/share/applications &>/dev/null || :
 
 %changelog
+* Sat Jul 11 2026 terminal.mk <support@terminal.mk> - 1.1.3-1
+- GUI: added drag-and-drop support for CSV files on the home screen.
+- core.py: parse the compressed `dz=` terminal.mk-dl:// payload.
 * Sat Jul 11 2026 terminal.mk <support@terminal.mk> - 1.0.0-1
 - Initial release

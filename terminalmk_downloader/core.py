@@ -9,9 +9,21 @@ CF.js "Download All" handoff:
   1. A "lean" CSV with columns FilingID, Form, Date, AttachmentIndex, Link
      -- the fallback the website saves to Downloads when it can't reach
      this app directly.
-  2. A `terminal.mk-dl://download?d=<base64url JSON>` URI -- the direct
-     handoff the website attempts first, via a custom protocol this app
-     registers itself as the handler for.
+  2. A `terminal.mk-dl://download?dz=<base64url zlib-deflated JSON>` (or,
+     for very old website builds, `?d=<base64url JSON>` uncompressed) URI
+     -- the direct handoff the website attempts first, via a custom
+     protocol this app registers itself as the handler for.
+
+     The payload is deflate-compressed (CF.js uses pako.deflate(), a JS
+     port of zlib, matched here by Python's stdlib zlib module) because
+     the raw JSON blows past safe custom-protocol URI lengths almost
+     immediately -- a perfectly ordinary batch of ~40 attachments already
+     produces a 7000+ character URI uncompressed, past CF.js's own
+     MAX_PROTOCOL_URI_LENGTH safety cutoff. The payload is mostly
+     repeated key names and similar-looking URLs, so it compresses
+     extremely well (40 items: ~7KB -> well under 500 bytes), turning
+     "silently falls back to CSV for almost any real batch" into "only
+     truly enormous batches ever hit the cutoff".
 
 Both paths resolve to the same thing: a batch name + a flat list of
 DownloadItem, which get_batch() below fetches concurrently.
@@ -28,6 +40,7 @@ import re
 import threading
 import time
 import urllib.parse
+import zlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable, Optional
@@ -138,7 +151,10 @@ def _b64url_decode(s: str) -> bytes:
 
 
 def parse_protocol_uri(uri: str) -> Batch:
-    """Parse terminal.mk-dl://download?d=<base64url JSON>.
+    """Parse terminal.mk-dl://download?dz=<base64url zlib-deflated JSON>
+    (current) or the older, uncompressed
+    terminal.mk-dl://download?d=<base64url JSON> (kept for backward
+    compatibility with any site build still sending the old param).
 
     Payload shape (see CF.js buildProtocolPayload):
         {"n": "<output name>", "items": [{"f": filingId, "i": attIndex, "l": link}, ...]}
@@ -149,11 +165,20 @@ def parse_protocol_uri(uri: str) -> Batch:
         raise ValueError(f"Not a {PROTOCOL_SCHEME}:// URI: {uri!r}")
 
     qs = urllib.parse.parse_qs(parsed.query)
-    encoded = (qs.get("d") or [None])[0]
-    if not encoded:
-        raise ValueError("URI is missing the 'd' payload parameter")
+    encoded_compressed = (qs.get("dz") or [None])[0]
+    encoded_plain = (qs.get("d") or [None])[0]
 
-    payload = json.loads(_b64url_decode(encoded).decode("utf-8"))
+    if encoded_compressed:
+        try:
+            raw = zlib.decompress(_b64url_decode(encoded_compressed))
+        except zlib.error as exc:
+            raise ValueError(f"Couldn't decompress 'dz' payload: {exc}") from exc
+    elif encoded_plain:
+        raw = _b64url_decode(encoded_plain)
+    else:
+        raise ValueError("URI is missing the 'dz' (or 'd') payload parameter")
+
+    payload = json.loads(raw.decode("utf-8"))
     name = payload.get("n") or "terminalMkDownloader_download"
     raw_items = payload.get("items") or []
 

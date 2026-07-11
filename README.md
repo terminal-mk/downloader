@@ -28,26 +28,30 @@ Grab the package for your OS from the [Releases page](https://github.com/termina
 
 | OS | File | Link |
 |---|---|---|
-| Linux (.deb, pure-Python, no build step) | `terminal.mk-dl_1.1.1_all.deb` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl_1.1.1_all.deb) |
-| Linux (.rpm) | `terminal.mk-dl-1.1.1-1.x86_64.rpm` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-1.1.1-1.x86_64.rpm) |
+| Linux (.deb, pure-Python, no build step) | `terminal.mk-dl_1.1.3_all.deb` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl_1.1.3_all.deb) |
+| Linux (.rpm) | `terminal.mk-dl-1.1.3-1.x86_64.rpm` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-1.1.3-1.x86_64.rpm) |
 | Windows (.exe) | `terminal.mk-dl-gui.exe` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-gui.exe) |
 | macOS (.app, zipped) | `terminal.mk-dl.app.zip` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl.app.zip) |
 
 Older versions (e.g. to pin a specific release) are listed on the [tags/releases page](https://github.com/terminal-mk/downloader/tags) — direct links follow the pattern `https://github.com/terminal-mk/downloader/releases/download/v<version>/<filename>`, e.g. [v1.1.1 `.deb`](https://github.com/terminal-mk/downloader/releases/download/v1.1.1/terminal.mk-dl_1.1.1_all.deb).
 
+> **v1.1.3** adds drag-and-drop of CSV files onto the GUI's home screen, and updates `core.py` to parse the compressed `terminal.mk-dl://download?dz=<base64url zlib-deflated JSON>` payload the site now sends (falls back to the older uncompressed `d=` param automatically).
+>
 > **v1.1.1** fixes `terminal.mk-dl://` links not launching the app on a fresh Linux install (see "Known issue" below) — if you installed an earlier `.deb`/`.rpm` and only the CSV fallback has been working, update to this version.
 
 ## Install
 
 ### From a package (once built for your OS — see "Packaging" below)
-- **Linux (.deb):** `sudo dpkg -i terminal.mk-dl_1.1.1_all.deb`
-- **Linux (.rpm):** `sudo rpm -i terminal.mk-dl-1.1.1-1.x86_64.rpm`
+- **Linux (.deb):** `sudo dpkg -i terminal.mk-dl_1.1.3_all.deb`
+- **Linux (.rpm):** `sudo rpm -i terminal.mk-dl-1.1.3-1.x86_64.rpm`
 - **Windows (.exe):** run the onefile binary, then `terminal.mk-dl.exe register` once to claim `terminal.mk-dl://` links.
 - **macOS:** ships with the GUI `.app` (registers the protocol via `Info.plist`); a standalone CLI binary also works for `csv`/`uri` commands without registration.
 
 ### From source (any OS with Python 3.9+)
 ```bash
 pip install -e .
+# or, to enable drag-and-drop of CSVs onto the GUI's home screen:
+pip install -e .[gui]
 terminal.mk-dl register        # claim terminal.mk-dl:// links for this user (CLI-only installs)
 terminal.mk-dl-gui             # launch the GUI (self-registers on first run)
 ```
@@ -86,7 +90,7 @@ input at all.
 `terminal.mk-dl-gui` (or just double-click the installed app):
 
 - **Launched with a link or CSV** (protocol handoff, or "Open with" on a CSV) → goes straight to a review screen: a flat list, one row per attachment, each with a checkbox (click a row to toggle it). `Select all` / `Select none`, pick a destination folder, `Download selected`. A **← Back** button returns to the home screen without downloading anything.
-- **Launched with nothing** (plain double-click) → a blank home screen to paste a `terminal.mk-dl://` link or browse for a CSV.
+- **Launched with nothing** (plain double-click) → a blank home screen to paste a `terminal.mk-dl://` link, browse for a CSV, or **drag and drop a CSV file** onto the drop zone. Drag-and-drop needs the optional `tkinterdnd2` package (`pip install tkinterdnd2`, or included automatically via the `gui` extra: `pip install -e .[gui]`); without it, the drop zone shows a note and Browse/paste-link still work as before.
 - Progress screen while downloading, with a **Cancel** button — any file mid-download is stopped and discarded, anything not yet started is skipped, and you land on a summary showing what did and didn't make it.
 - Summary screen with an `Open folder` button and **Back to start**.
 - Registers itself as the `terminal.mk-dl://` handler automatically the first time it runs (no prompt) — `Re-register app` on the home screen redoes it manually if needed (e.g. after another app steals the association, or after the Chrome/Chromium fix below).
@@ -181,7 +185,7 @@ its target OS.
 | macOS | `build_scripts/build_macos.sh` | `dist/terminal.mk-dl`, `dist/terminal.mk-dl-gui` (`.app` bundling comes with the GUI) |
 
 A ready-to-install **pure-Python `.deb`** is already built in this
-delivery at `packaging/out/terminal.mk-dl_1.1.1_all.deb` — it
+delivery at `packaging/out/terminal.mk-dl_1.1.3_all.deb` — it
 runs on the system Python (`Depends: python3, python3-requests, python3-tk`)
 rather than bundling a PyInstaller binary, so it doesn't require a build
 step; install it directly with `sudo dpkg -i ...`. The PyInstaller-based

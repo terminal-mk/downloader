@@ -1,5 +1,5 @@
 Name:           terminal.mk-dl
-Version:        1.1.1
+Version:        1.1.3
 Release:        1%{?dist}
 Summary:        Batch downloader for terminal.mk filing attachments
 License:        MIT
@@ -86,6 +86,13 @@ if [ "$1" = "0" ]; then
 fi
 
 %changelog
+* Sat Jul 11 2026 terminal.mk <support@terminal.mk> - 1.1.3-1
+- GUI: added drag-and-drop support for CSV files on the home screen
+  (optional tkinterdnd2 dependency; falls back to Browse/paste-link
+  when it isn't installed).
+- core.py: parse the compressed `dz=<base64url zlib-deflated JSON>`
+  terminal.mk-dl:// payload (falls back to the older uncompressed `d=`
+  param for backward compatibility).
 * Sat Jul 11 2026 terminal.mk <support@terminal.mk> - 1.1.1-1
 - Fixed terminal.mk-dl:// links not launching the app: %post now sets
   a system-wide default handler in mimeapps.list instead of relying on
