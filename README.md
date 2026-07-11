@@ -1,6 +1,4 @@
-<img src="terminalmk_downloader/assets/icon.svg" alt="Terminal MK - Downloader icon" width="64">
-
-# Terminal MK - Downloader
+<img src="terminalmk_downloader/assets/icon_256.png" alt="Terminal MK - Downloader icon" width="28"> # Terminal MK - Downloader
 
 Companion desktop app for **terminal.mk**'s CF (Corporate Filings) view.
 
