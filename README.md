@@ -27,9 +27,9 @@ Grab the package for your OS from the [Releases page](https://github.com/termina
 | OS | File | Link |
 |---|---|---|
 | Linux (.deb, pure-Python, no build step) | `terminal.mk-dl_1.1.3_all.deb` | [Download](https://github.com/terminal-mk/downloader/blob/main/releases/latest/download/terminal.mk-dl_1.1.3_all.deb) |
-| Linux (.rpm) | `terminal.mk-dl-1.1.3-1.x86_64.rpm` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-1.1.3-1.x86_64.rpm) |
-| Windows (.exe) | `terminal.mk-dl-gui.exe` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-gui.exe) |
-| macOS (.app, zipped) | `terminal.mk-dl.app.zip` | [Download](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl.app.zip) |
+| Linux (.rpm) | `terminal.mk-dl-1.1.3-1.x86_64.rpm` | Still not aviable |
+| Windows (.exe) | `terminal.mk-dl-gui.exe` | Still not aviable |
+| macOS (.app, zipped) | `terminal.mk-dl.app.zip` | Still not aviable |
 
 Older versions (e.g. to pin a specific release) are listed on the [tags/releases page](https://github.com/terminal-mk/downloader/tags) — direct links follow the pattern `https://github.com/terminal-mk/downloader/releases/download/v<version>/<filename>`, e.g. [v1.1.1 `.deb`](https://github.com/terminal-mk/downloader/releases/download/v1.1.1/terminal.mk-dl_1.1.1_all.deb).
 
