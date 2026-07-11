@@ -6,7 +6,7 @@
 #   Linux:    dist/terminalmk-downloader-gui
 
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
@@ -14,8 +14,8 @@ a = Analysis(
     ['../terminalmk_downloader/gui.py'],
     pathex=['..'],
     binaries=[],
-    datas=[],
-    hiddenimports=collect_submodules('terminalmk_downloader'),
+    datas=collect_data_files('tkinterdnd2'),
+    hiddenimports=collect_submodules('terminalmk_downloader') + ['tkinterdnd2'],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],

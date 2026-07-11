@@ -37,27 +37,19 @@ from . import config, core, protocol
 from .protocol import DISPLAY_NAME, ICON_PATH
 from .theme import ACCENT_ORANGE, ACCENT_TEAL, ACCENT_WINE, BG, BG_PANEL, BG_SECONDARY, TEXT, TEXT_MUTED
 
-# Drag-and-drop is an optional extra (tkinterdnd2) -- plain tkinter has no
-# native DnD support. Everything below degrades gracefully to the existing
-# "Browse for CSV..." button when the package isn't installed, so this is
-# never a hard dependency.
-try:
-    from tkinterdnd2 import DND_FILES, TkinterDnD
-    DND_AVAILABLE = True
-except ImportError:
-    DND_FILES = None
-    TkinterDnD = None
-    DND_AVAILABLE = False
+# Required for CSV drag-and-drop on the home screen -- plain tkinter has no
+# native DnD support. This is a hard dependency (see requirements.txt /
+# pyproject.toml); the .deb/.rpm packages install it automatically.
+from tkinterdnd2 import DND_FILES, TkinterDnD
 
 CHECK_ON = "\u2611"   # ☑
 CHECK_OFF = "\u2610"  # ☐
 
 DEFAULT_OUTPUT_DIR = str(Path.home() / "Downloads" / "Terminal MK")
 
-# Base window class: TkinterDnD.Tk if the optional dependency is present
-# (it's a drop-in tk.Tk subclass that adds drop_target_register/dnd_bind),
-# otherwise plain tk.Tk.
-_BaseWindow = TkinterDnD.Tk if DND_AVAILABLE else tk.Tk
+# TkinterDnD.Tk is a drop-in tk.Tk subclass that adds
+# drop_target_register/dnd_bind, so it's used as the app's base window.
+_BaseWindow = TkinterDnD.Tk
 
 
 def _parse_dnd_paths(data: str) -> list[str]:
@@ -239,27 +231,21 @@ class BlankScreen(ttk.Frame):
         ttk.Button(wrap, text="Browse for CSV…", style="Orange.TButton", command=self._browse_csv).pack(pady=(4, 0))
 
         # ---- drag-and-drop zone -------------------------------------
-        # Only wired up live when tkinterdnd2 is installed; otherwise this
-        # is just a static hint and Browse/paste-link above still work.
         self.drop_zone = tk.Frame(wrap, bg=BG_PANEL, highlightthickness=2,
                                    highlightbackground=BG_SECONDARY, highlightcolor=ACCENT_TEAL)
         self.drop_zone.pack(fill="x", pady=(16, 0), ipady=14)
         self.drop_label = tk.Label(
-            self.drop_zone,
-            text=("Drag & drop a CSV file here" if DND_AVAILABLE
-                  else "Drag & drop needs the optional 'tkinterdnd2' package (pip install tkinterdnd2)"),
-            bg=BG_PANEL, fg=TEXT if DND_AVAILABLE else TEXT_MUTED,
-            font=("Segoe UI", 9, "" if DND_AVAILABLE else "italic"),
+            self.drop_zone, text="Drag & drop a CSV file here",
+            bg=BG_PANEL, fg=TEXT, font=("Segoe UI", 9),
         )
         self.drop_label.pack()
 
-        if DND_AVAILABLE:
-            self.drop_zone.drop_target_register(DND_FILES)
-            self.drop_zone.dnd_bind("<<Drop>>", self._on_drop)
-            self.drop_zone.dnd_bind("<<DropEnter>>", self._on_drop_enter)
-            self.drop_zone.dnd_bind("<<DropLeave>>", self._on_drop_leave)
-            self.drop_label.drop_target_register(DND_FILES)
-            self.drop_label.dnd_bind("<<Drop>>", self._on_drop)
+        self.drop_zone.drop_target_register(DND_FILES)
+        self.drop_zone.dnd_bind("<<Drop>>", self._on_drop)
+        self.drop_zone.dnd_bind("<<DropEnter>>", self._on_drop_enter)
+        self.drop_zone.dnd_bind("<<DropLeave>>", self._on_drop_leave)
+        self.drop_label.drop_target_register(DND_FILES)
+        self.drop_label.dnd_bind("<<Drop>>", self._on_drop)
 
         footer = ttk.Frame(self, style="TFrame")
         footer.pack(side="bottom", fill="x", pady=14, padx=16)

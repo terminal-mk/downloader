@@ -6,7 +6,7 @@
 #   Linux:    dist/terminal.mk-dl-gui
 
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
@@ -14,8 +14,17 @@ a = Analysis(
     ['../terminalmk_downloader/gui.py'],
     pathex=['..'],
     binaries=[],
-    datas=[('../terminalmk_downloader/assets', 'terminalmk_downloader/assets')],
-    hiddenimports=collect_submodules('terminalmk_downloader'),
+    datas=[
+        ('../terminalmk_downloader/assets', 'terminalmk_downloader/assets'),
+        # tkinterdnd2 ships prebuilt native tkdnd binaries per-platform
+        # (tkinterdnd2/tkdnd/...) that PyInstaller's default import
+        # analysis won't pick up on its own since they're loaded via a Tcl
+        # `package require` at runtime, not a Python import -- without
+        # these, the onefile binary launches but drag-and-drop silently
+        # does nothing.
+        *collect_data_files('tkinterdnd2'),
+    ],
+    hiddenimports=collect_submodules('terminalmk_downloader') + ['tkinterdnd2'],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],

@@ -13,13 +13,11 @@ authors = [{ name = "terminal.mk" }]
 urls = { Homepage = "https://github.com/terminal-mk/downloader" }
 dependencies = [
     "requests>=2.28",
+    "tkinterdnd2>=2.3.0",
 ]
 
 [project.optional-dependencies]
-# tkinterdnd2 enables drag-and-drop of CSV files onto the home screen.
-# Purely optional -- the GUI falls back to the Browse/paste-link controls
-# if it isn't installed.
-gui = ["tkinterdnd2>=2.3.0"]
+gui = []  # tkinterdnd2 is now a core dependency (see above); nothing extra needed here
 
 [project.scripts]
 "terminal.mk-dl" = "terminalmk_downloader.cli:main"

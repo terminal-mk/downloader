@@ -71,4 +71,16 @@ if command -v xdg-mime >/dev/null 2>&1; then
   xdg-mime default terminal.mk-dl.desktop "$SCHEME_KEY" || true
 fi
 
+# terminal.mk-dl-gui requires tkinterdnd2 (CSV drag-and-drop). It isn't
+# packaged for apt/dnf, so pip install it here rather than leaving it to
+# `pip install -r requirements.txt`, which nothing runs automatically for
+# a .deb install -- without this step the GUI would fail to launch at all
+# (gui.py imports tkinterdnd2 unconditionally) even though dpkg reported
+# a clean install.
+if ! python3 -c "import tkinterdnd2" >/dev/null 2>&1; then
+  pip3 install --break-system-packages tkinterdnd2 >/dev/null 2>&1 \
+    || pip3 install tkinterdnd2 >/dev/null 2>&1 \
+    || echo "terminal.mk-dl: couldn't auto-install tkinterdnd2 -- run 'pip3 install tkinterdnd2' manually, or the GUI won't start." >&2
+fi
+
 exit 0

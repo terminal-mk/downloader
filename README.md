@@ -35,7 +35,7 @@ Grab the package for your OS from the [Releases page](https://github.com/termina
 
 Older versions (e.g. to pin a specific release) are listed on the [tags/releases page](https://github.com/terminal-mk/downloader/tags) — direct links follow the pattern `https://github.com/terminal-mk/downloader/releases/download/v<version>/<filename>`, e.g. [v1.1.1 `.deb`](https://github.com/terminal-mk/downloader/releases/download/v1.1.1/terminal.mk-dl_1.1.1_all.deb).
 
-> **v1.1.3** adds drag-and-drop of CSV files onto the GUI's home screen, and updates `core.py` to parse the compressed `terminal.mk-dl://download?dz=<base64url zlib-deflated JSON>` payload the site now sends (falls back to the older uncompressed `d=` param automatically).
+> **v1.1.3** adds drag-and-drop of CSV files onto the GUI's home screen (requires `tkinterdnd2`, now a core dependency -- `pip install -e .` pulls it in automatically, and the `.deb` installs it via `postinst` if it's missing), and updates `core.py` to parse the compressed `terminal.mk-dl://download?dz=<base64url zlib-deflated JSON>` payload the site now sends (falls back to the older uncompressed `d=` param automatically).
 >
 > **v1.1.1** fixes `terminal.mk-dl://` links not launching the app on a fresh Linux install (see "Known issue" below) — if you installed an earlier `.deb`/`.rpm` and only the CSV fallback has been working, update to this version.
 
@@ -50,8 +50,6 @@ Older versions (e.g. to pin a specific release) are listed on the [tags/releases
 ### From source (any OS with Python 3.9+)
 ```bash
 pip install -e .
-# or, to enable drag-and-drop of CSVs onto the GUI's home screen:
-pip install -e .[gui]
 terminal.mk-dl register        # claim terminal.mk-dl:// links for this user (CLI-only installs)
 terminal.mk-dl-gui             # launch the GUI (self-registers on first run)
 ```
@@ -90,7 +88,7 @@ input at all.
 `terminal.mk-dl-gui` (or just double-click the installed app):
 
 - **Launched with a link or CSV** (protocol handoff, or "Open with" on a CSV) → goes straight to a review screen: a flat list, one row per attachment, each with a checkbox (click a row to toggle it). `Select all` / `Select none`, pick a destination folder, `Download selected`. A **← Back** button returns to the home screen without downloading anything.
-- **Launched with nothing** (plain double-click) → a blank home screen to paste a `terminal.mk-dl://` link, browse for a CSV, or **drag and drop a CSV file** onto the drop zone. Drag-and-drop needs the optional `tkinterdnd2` package (`pip install tkinterdnd2`, or included automatically via the `gui` extra: `pip install -e .[gui]`); without it, the drop zone shows a note and Browse/paste-link still work as before.
+- **Launched with nothing** (plain double-click) → a blank home screen to paste a `terminal.mk-dl://` link, browse for a CSV, or **drag and drop a CSV file** onto the drop zone (needs `tkinterdnd2`, a required dependency -- see "Install"/"Packaging" below for how each build gets it).
 - Progress screen while downloading, with a **Cancel** button — any file mid-download is stopped and discarded, anything not yet started is skipped, and you land on a summary showing what did and didn't make it.
 - Summary screen with an `Open folder` button and **Back to start**.
 - Registers itself as the `terminal.mk-dl://` handler automatically the first time it runs (no prompt) — `Re-register app` on the home screen redoes it manually if needed (e.g. after another app steals the association, or after the Chrome/Chromium fix below).
@@ -171,7 +169,11 @@ duplicating the download engine, registration logic, or colour palette.
 **Linux dependency note:** the GUI needs Tk, which on Debian/Ubuntu is a
 separate system package (`python3-tk`) rather than something `pip`
 installs — the `.deb` already lists it as a dependency, and it's called
-out in `requirements.txt`'s comments for from-source installs.
+out in `requirements.txt`'s comments for from-source installs. The GUI
+also requires `tkinterdnd2` (for CSV drag-and-drop), which *is* a normal
+pip package; `pip install -e .` pulls it in for from-source installs,
+and the `.deb`'s `postinst` installs it automatically if it's missing
+(it isn't packaged for apt, so `Depends:` alone can't cover it).
 
 ## Packaging
 
