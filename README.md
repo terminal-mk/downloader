@@ -189,6 +189,26 @@ step; install it directly with `sudo dpkg -i ...`. The PyInstaller-based
 `build_scripts/build_linux.sh` once you run it on a Linux box with
 network access.
 
+### Troubleshooting: `dpkg-deb: bad permissions` when building
+
+If you got this repo via GitHub's **Download ZIP** button rather than
+`git clone`, every file loses its executable bit — GitHub's zip export
+doesn't preserve Unix permissions, only `git clone`/`git archive` do.
+Building `.deb`s (`packaging/debian-python`, `packaging/debian`) needs
+`DEBIAN/postinst`/`DEBIAN/prerm` and the build scripts to be executable,
+so `dpkg-deb --build` will fail with a permissions error until you
+restore them:
+
+```bash
+chmod 755 packaging/debian-python/DEBIAN/postinst packaging/debian-python/DEBIAN/prerm \
+           packaging/debian/DEBIAN/postinst packaging/debian/DEBIAN/prerm \
+           packaging/debian-python/usr/bin/terminal.mk-dl packaging/debian-python/usr/bin/terminal.mk-dl-gui \
+           build_scripts/*.sh packaging/debian/build_deb.sh packaging/rpm/build_rpm.sh
+```
+
+`git clone https://github.com/terminal-mk/downloader.git` avoids this
+entirely and is the recommended way to get the source.
+
 ### Protocol registration reference
 - **Linux:** a `.desktop` file with `MimeType=x-scheme-handler/terminal.mk-dl;`, registered via `xdg-mime` *and* written directly into `mimeapps.list` (see the Chrome/Chromium note above). The `.deb`'s `postinst` / the `.rpm`'s `%post` do this automatically at **system level** at install time (`prerm`/`%preun` undo it on removal) — see "Fixed in 1.1.1" above — and `terminal.mk-dl register` does the equivalent per-user for a manual/from-source install.
 - **Windows:** an `HKEY_CURRENT_USER\Software\Classes\terminal.mk-dl` key (written as a `.reg` file by `protocol.py`, imported by `terminal.mk-dl register`).
