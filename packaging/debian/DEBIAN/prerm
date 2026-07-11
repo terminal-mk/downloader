@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+SCHEME_KEY="x-scheme-handler/terminal.mk-dl"
+SYSTEM_MIMEAPPS=/usr/share/applications/mimeapps.list
+if [ -f "$SYSTEM_MIMEAPPS" ]; then
+  sed -i "\\#^${SCHEME_KEY}=terminal.mk-dl.desktop\$#d" "$SYSTEM_MIMEAPPS" || true
+fi
+
+exit 0

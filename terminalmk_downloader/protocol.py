@@ -1,19 +1,22 @@
 """
-Registers this app as the OS handler for terminalmk-dl:// links, so the
+Registers this app as the OS handler for terminal.mk-dl:// links, so the
 "Download All" button on terminal.mk/view/CF can hand batches straight
 to it (see CF.js's tryLaunchDownloader / PROTOCOL_SCHEME).
 
-The protocol scheme itself (terminalmk-dl) is a fixed contract with the
-website's JS and is NOT renamed -- only the app's own display name and
-executable names changed.
+The protocol scheme itself is a fixed contract with the website's JS
+(see CF.js's PROTOCOL_SCHEME) and now matches the app's display name:
+terminal.mk-dl. It was previously terminalmk-dl (no dot) -- both the
+scheme and the app's display/executable names were renamed together,
+so anyone with the old build still registered will need to re-run
+`register()` (or reinstall) to pick up the new scheme.
 
 Each OS does this differently:
-  - Linux:   a .desktop file with MimeType=x-scheme-handler/terminalmk-dl,
+  - Linux:   a .desktop file with MimeType=x-scheme-handler/terminal.mk-dl,
              registered via xdg-mime *and* written directly into
              mimeapps.list (see note in register_linux below -- some
              browsers, notably Chrome/Chromium, don't reliably pick up
              xdg-mime's own writes).
-  - Windows: a registry key under HKCU\\Software\\Classes\\terminalmk-dl.
+  - Windows: a registry key under HKCU\\Software\\Classes\\terminal.mk-dl.
   - macOS:   CFBundleURLTypes in the .app's Info.plist (set at build
              time when the .app bundle is created -- there is nothing
              to register at runtime, so `register()` is a no-op there
@@ -174,7 +177,7 @@ def register(for_gui: bool = True) -> str:
     """Best-effort protocol registration for the current OS. Returns a
     human-readable message describing what happened. Registers the GUI
     as the handler by default, since that's what a double-click / a
-    browser-triggered terminalmk-dl:// link should open."""
+    browser-triggered terminal.mk-dl:// link should open."""
     default_name = GUI_APP_NAME if for_gui else APP_NAME
     exec_path = shutil.which(default_name) or shutil.which(APP_NAME) or sys.argv[0]
 
@@ -186,7 +189,7 @@ def register(for_gui: bool = True) -> str:
         return f"Registered {PROTOCOL_SCHEME}:// via {path} (imported into HKCU)"
     if sys.platform == "darwin":
         return (
-            "On macOS the terminalmk-dl:// handler is registered when the .app "
+            "On macOS the terminal.mk-dl:// handler is registered when the .app "
             "bundle is installed (CFBundleURLTypes in Info.plist), not at runtime. "
             "Nothing to do here for the CLI build."
         )

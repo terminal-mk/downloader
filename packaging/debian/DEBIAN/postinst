@@ -17,7 +17,7 @@ NoDisplay=true
 Categories=Network;FileTransfer;Utility;
 StartupNotify=false
 Icon=terminal.mk-dl
-MimeType=x-scheme-handler/terminalmk-dl;
+MimeType=x-scheme-handler/terminal.mk-dl;
 EOF
 
 if command -v update-desktop-database >/dev/null 2>&1; then
@@ -25,6 +25,32 @@ if command -v update-desktop-database >/dev/null 2>&1; then
 fi
 if command -v gtk-update-icon-cache >/dev/null 2>&1 && [ -d /usr/share/icons/hicolor ]; then
   gtk-update-icon-cache -f -t /usr/share/icons/hicolor || true
+fi
+
+# See packaging/debian-python/DEBIAN/postinst for the full explanation:
+# the .desktop file above only declares this app CAPABLE of handling
+# x-scheme-handler/terminal.mk-dl, not the DEFAULT handler, and nothing
+# else sets a default until the app is launched at least once -- which
+# never happens for a fresh protocol-link click. Writing a system-wide
+# default into mimeapps.list (no per-user $HOME required, no prior
+# launch required) is what actually makes the link work right after
+# `dpkg -i`.
+SCHEME_KEY="x-scheme-handler/terminal.mk-dl"
+SYSTEM_MIMEAPPS=/usr/share/applications/mimeapps.list
+mkdir -p "$(dirname "$SYSTEM_MIMEAPPS")"
+NEEDS_LEADING_BLANK=false
+if [ -s "$SYSTEM_MIMEAPPS" ]; then
+  NEEDS_LEADING_BLANK=true
+fi
+if [ -f "$SYSTEM_MIMEAPPS" ] && grep -q '^\[Default Applications\]' "$SYSTEM_MIMEAPPS"; then
+  sed -i "\\#^${SCHEME_KEY}=#d" "$SYSTEM_MIMEAPPS"
+  sed -i "/^\[Default Applications\]/a ${SCHEME_KEY}=terminal.mk-dl.desktop" "$SYSTEM_MIMEAPPS"
+else
+  { [ "$NEEDS_LEADING_BLANK" = true ] && echo; printf '[Default Applications]\n%s=terminal.mk-dl.desktop\n' "$SCHEME_KEY"; } >> "$SYSTEM_MIMEAPPS"
+fi
+
+if command -v xdg-mime >/dev/null 2>&1; then
+  xdg-mime default terminal.mk-dl.desktop "$SCHEME_KEY" || true
 fi
 
 exit 0

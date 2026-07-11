@@ -2,9 +2,9 @@
 terminal.mk-dl CLI
 
 Usage:
-    terminal.mk-dl open <csv-path-or-terminalmk-dl:// URI> [-o DIR] [-j N]
+    terminal.mk-dl open <csv-path-or-terminal.mk-dl:// URI> [-o DIR] [-j N]
     terminal.mk-dl csv <path> [-o DIR] [-j N]
-    terminal.mk-dl uri "<terminalmk-dl://...>" [-o DIR] [-j N]
+    terminal.mk-dl uri "<terminal.mk-dl://...>" [-o DIR] [-j N]
     terminal.mk-dl register
 """
 
@@ -86,7 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="terminal.mk-dl",
         description=(
             "Batch-downloads filing attachments handed off from terminal.mk's "
-            "'Download All' button (CSV file or terminalmk-dl:// link)."
+            "'Download All' button (CSV file or terminal.mk-dl:// link)."
         ),
     )
     parser.add_argument("--no-color", action="store_true", help="Disable ANSI colour output")
@@ -104,19 +104,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_open = sub.add_parser(
         "open", parents=[common],
-        help="Auto-detect a CSV path or terminalmk-dl:// URI and download it",
+        help="Auto-detect a CSV path or terminal.mk-dl:// URI and download it",
     )
-    p_open.add_argument("source", help="Path to a lean CF CSV, or a terminalmk-dl:// URI")
+    p_open.add_argument("source", help="Path to a lean CF CSV, or a terminal.mk-dl:// URI")
 
     p_csv = sub.add_parser("csv", parents=[common], help="Download from a lean CF CSV file")
     p_csv.add_argument("path", help="Path to the CSV file")
 
-    p_uri = sub.add_parser("uri", parents=[common], help="Download from a terminalmk-dl:// URI")
-    p_uri.add_argument("uri", help="The terminalmk-dl://download?d=... URI")
+    p_uri = sub.add_parser("uri", parents=[common], help="Download from a terminal.mk-dl:// URI")
+    p_uri.add_argument("uri", help="The terminal.mk-dl://download?d=... URI")
 
     sub.add_parser(
         "register",
-        help="Register this app as the OS handler for terminalmk-dl:// links",
+        help="Register this app as the OS handler for terminal.mk-dl:// links",
     )
 
     return parser

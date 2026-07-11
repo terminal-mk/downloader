@@ -16,7 +16,7 @@ NoDisplay=false
 Categories=Network;FileTransfer;Utility;
 StartupNotify=false
 Icon=terminal.mk-dl
-MimeType=x-scheme-handler/terminalmk-dl;
+MimeType=x-scheme-handler/terminal.mk-dl;
 EOF
 
 if command -v update-desktop-database >/dev/null 2>&1; then
@@ -24,6 +24,51 @@ if command -v update-desktop-database >/dev/null 2>&1; then
 fi
 if command -v gtk-update-icon-cache >/dev/null 2>&1 && [ -d /usr/share/icons/hicolor ]; then
   gtk-update-icon-cache -f -t /usr/share/icons/hicolor || true
+fi
+
+# Dropping the .desktop file above only tells the desktop this app is
+# CAPABLE of handling x-scheme-handler/terminal.mk-dl -- it does not make
+# it the DEFAULT handler. Without an explicit default, terminal.mk-dl://
+# links from the browser silently go nowhere (Chrome/Chromium in
+# particular resolve the scheme via GIO against mimeapps.list, not by
+# picking whichever capable app it finds). The app *would* self-register
+# a proper default on its own first run (see protocol.py's
+# register_linux/_ensure_registered), but that never gets a chance to
+# run here: the OS won't launch it for a protocol link until something
+# has already told it to, and postinst runs as root during install, not
+# as the logged-in user, so it can't write that user's own
+# ~/.config/mimeapps.list either. Writing a *system-wide* default into
+# /usr/share/applications/mimeapps.list closes that gap -- it's read as
+# a fallback by every user on the machine per the XDG spec, requires no
+# per-user $HOME, and needs no prior app launch. This mirrors exactly
+# what protocol.py writes per-user, just at the system level.
+SCHEME_KEY="x-scheme-handler/terminal.mk-dl"
+SYSTEM_MIMEAPPS=/usr/share/applications/mimeapps.list
+mkdir -p "$(dirname "$SYSTEM_MIMEAPPS")"
+# Capture existence/non-emptiness *before* anything below opens the file
+# for append -- an append redirect creates a (0-byte) file as part of
+# setting itself up, before the commands inside it run, so testing
+# "-f $SYSTEM_MIMEAPPS" from inside an appended block always sees it as
+# already existing and would wrongly prepend a blank line on a fresh
+# install.
+NEEDS_LEADING_BLANK=false
+if [ -s "$SYSTEM_MIMEAPPS" ]; then
+  NEEDS_LEADING_BLANK=true
+fi
+if [ -f "$SYSTEM_MIMEAPPS" ] && grep -q '^\[Default Applications\]' "$SYSTEM_MIMEAPPS"; then
+  # Drop any stale line for our scheme (e.g. from a previous version),
+  # then insert the current one right under the section header.
+  sed -i "\\#^${SCHEME_KEY}=#d" "$SYSTEM_MIMEAPPS"
+  sed -i "/^\[Default Applications\]/a ${SCHEME_KEY}=terminal.mk-dl.desktop" "$SYSTEM_MIMEAPPS"
+else
+  { [ "$NEEDS_LEADING_BLANK" = true ] && echo; printf '[Default Applications]\n%s=terminal.mk-dl.desktop\n' "$SCHEME_KEY"; } >> "$SYSTEM_MIMEAPPS"
+fi
+
+# Best-effort: also try xdg-mime directly, in case postinst happens to
+# run with a real user's $HOME (e.g. some sudo-preserving setups). Not
+# relied upon -- the mimeapps.list write above is the actual fix.
+if command -v xdg-mime >/dev/null 2>&1; then
+  xdg-mime default terminal.mk-dl.desktop "$SCHEME_KEY" || true
 fi
 
 exit 0

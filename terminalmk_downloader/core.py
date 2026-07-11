@@ -9,7 +9,7 @@ CF.js "Download All" handoff:
   1. A "lean" CSV with columns FilingID, Form, Date, AttachmentIndex, Link
      -- the fallback the website saves to Downloads when it can't reach
      this app directly.
-  2. A `terminalmk-dl://download?d=<base64url JSON>` URI -- the direct
+  2. A `terminal.mk-dl://download?d=<base64url JSON>` URI -- the direct
      handoff the website attempts first, via a custom protocol this app
      registers itself as the handler for.
 
@@ -34,7 +34,7 @@ from typing import Callable, Optional
 
 import requests
 
-PROTOCOL_SCHEME = "terminalmk-dl"
+PROTOCOL_SCHEME = "terminal.mk-dl"
 DEFAULT_CONCURRENCY = 6
 REQUEST_TIMEOUT = 30
 MAX_RETRIES = 3
@@ -130,7 +130,7 @@ def parse_lean_csv(path: str | Path) -> Batch:
 
 
 # ---------------------------------------------------------------------
-# Parsing: terminalmk-dl:// protocol URI
+# Parsing: terminal.mk-dl:// protocol URI
 # ---------------------------------------------------------------------
 def _b64url_decode(s: str) -> bytes:
     padding = "=" * (-len(s) % 4)
@@ -138,7 +138,7 @@ def _b64url_decode(s: str) -> bytes:
 
 
 def parse_protocol_uri(uri: str) -> Batch:
-    """Parse terminalmk-dl://download?d=<base64url JSON>.
+    """Parse terminal.mk-dl://download?d=<base64url JSON>.
 
     Payload shape (see CF.js buildProtocolPayload):
         {"n": "<output name>", "items": [{"f": filingId, "i": attIndex, "l": link}, ...]}
@@ -154,7 +154,7 @@ def parse_protocol_uri(uri: str) -> Batch:
         raise ValueError("URI is missing the 'd' payload parameter")
 
     payload = json.loads(_b64url_decode(encoded).decode("utf-8"))
-    name = payload.get("n") or "terminalmk_download"
+    name = payload.get("n") or "terminalMkDownloader_download"
     raw_items = payload.get("items") or []
 
     items = [
@@ -173,7 +173,7 @@ def parse_protocol_uri(uri: str) -> Batch:
 
 
 def load_batch(source: str) -> Batch:
-    """Auto-detect a terminalmk-dl:// URI vs a CSV file path and parse it."""
+    """Auto-detect a terminal.mk-dl:// URI vs a CSV file path and parse it."""
     if source.strip().lower().startswith(f"{PROTOCOL_SCHEME}://"):
         return parse_protocol_uri(source)
     return parse_lean_csv(source)

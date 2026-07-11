@@ -14,7 +14,7 @@ pyinstaller build_scripts\terminal.mk-dl-gui.spec --distpath dist --workpath bui
 
 echo Binaries: dist\terminal.mk-dl.exe, dist\terminal.mk-dl-gui.exe
 echo.
-echo The GUI registers itself as the terminalmk-dl:// handler automatically
+echo The GUI registers itself as the terminal.mk-dl:// handler automatically
 echo the first time it's run. To re-register manually (e.g. after another
 echo app steals the association), use the "Re-register app" button on its
 echo blank/start screen, or run: dist\terminal.mk-dl.exe register

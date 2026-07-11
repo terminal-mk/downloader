@@ -2,7 +2,7 @@
 # Run on a macOS machine (PyInstaller cannot cross-compile from Linux/Windows).
 # Produces dist/terminal.mk-dl (onefile CLI binary).
 #
-# NOTE: the terminalmk-dl:// protocol handler on macOS is registered via
+# NOTE: the terminal.mk-dl:// protocol handler on macOS is registered via
 # CFBundleURLTypes in an .app bundle's Info.plist, not at runtime -- that
 # bundling happens in the GUI build (build_scripts/build_macos_gui.sh,
 # added alongside the GUI). This script just gets the CLI binary built.

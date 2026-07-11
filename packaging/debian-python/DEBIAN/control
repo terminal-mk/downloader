@@ -1,5 +1,5 @@
 Package: terminal.mk-dl
-Version: 1.0.0
+Version: 1.1.1
 Section: utils
 Priority: optional
 Architecture: all
@@ -9,7 +9,7 @@ Homepage: https://github.com/terminal-mk/downloader
 Description: Batch downloader for terminal.mk filing attachments
  Companion app for terminal.mk's CF (Corporate Filings) view. Receives a
  batch handed off from the "Download All" button -- either via the
- terminalmk-dl:// URL protocol or a fallback CSV -- and downloads every
+ terminal.mk-dl:// URL protocol or a fallback CSV -- and downloads every
  attachment locally, working around browser popup/CORS limits.
  .
  This is the pure-Python build (runs on the system Python interpreter).

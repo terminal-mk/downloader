@@ -2,7 +2,7 @@
 # Run this ON each target OS -- PyInstaller does not cross-compile.
 #   Windows:  dist\terminal.mk-dl-gui.exe
 #   macOS:    dist/terminal.mk-dl-gui  (wrap into a .app for the
-#             terminalmk-dl:// Info.plist registration -- see README)
+#             terminal.mk-dl:// Info.plist registration -- see README)
 #   Linux:    dist/terminal.mk-dl-gui
 
 # -*- mode: python ; coding: utf-8 -*-

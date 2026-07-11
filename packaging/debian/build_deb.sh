@@ -15,7 +15,8 @@ mkdir -p "$STAGE/DEBIAN" "$STAGE/usr/bin" "$STAGE/usr/share/icons/hicolor/256x25
 
 cp "$PKG_SRC/DEBIAN/control" "$STAGE/DEBIAN/control"
 cp "$PKG_SRC/DEBIAN/postinst" "$STAGE/DEBIAN/postinst"
-chmod 755 "$STAGE/DEBIAN/postinst"
+cp "$PKG_SRC/DEBIAN/prerm" "$STAGE/DEBIAN/prerm"
+chmod 755 "$STAGE/DEBIAN/postinst" "$STAGE/DEBIAN/prerm"
 
 cp "$BIN_PATH" "$STAGE/usr/bin/terminal.mk-dl"
 chmod 755 "$STAGE/usr/bin/terminal.mk-dl"

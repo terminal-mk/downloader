@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+# Undo the [Default Applications] line postinst added to the system-wide
+# mimeapps.list, so an uninstalled app doesn't stay registered as the
+# default handler for terminal.mk-dl:// links (which would otherwise
+# silently fail every time, rather than falling back to the CSV path).
+SCHEME_KEY="x-scheme-handler/terminal.mk-dl"
+SYSTEM_MIMEAPPS=/usr/share/applications/mimeapps.list
+if [ -f "$SYSTEM_MIMEAPPS" ]; then
+  sed -i "\\#^${SCHEME_KEY}=terminal.mk-dl.desktop\$#d" "$SYSTEM_MIMEAPPS" || true
+fi
+
+exit 0

@@ -2,7 +2,7 @@
 Terminal MK - Downloader -- GUI
 
 Flow:
-  1. Launched with a terminalmk-dl:// URI or a CSV path as argv[1]
+  1. Launched with a terminal.mk-dl:// URI or a CSV path as argv[1]
      (that's what the protocol handler / file association passes in)
      -> straight to the review screen.
   2. Launched with no argument (plain double-click)
@@ -15,7 +15,7 @@ Flow:
      didn't finish.
   5. Summary screen: counts + Open Folder + Back to start.
 
-macOS note: launching via a terminalmk-dl:// link (rather than double-
+macOS note: launching via a terminal.mk-dl:// link (rather than double-
 clicking the .app or opening a CSV) delivers the URL as a Cocoa
 "open URL" Apple Event, not argv -- plain Tkinter doesn't see that. The
 CSV/browse/paste paths below all work fine as-is; wiring up the Apple
@@ -178,7 +178,7 @@ class BlankScreen(ttk.Frame):
         ttk.Label(wrap, text=DISPLAY_NAME, style="Title.TLabel").pack(pady=(0, 4))
         ttk.Label(
             wrap,
-            text="Paste a terminalmk-dl:// link from the site, or open a filings CSV.",
+            text="Paste a terminal.mk-dl:// link from the site, or open a filings CSV.",
             style="Subtitle.TLabel",
         ).pack(pady=(0, 20))
 
@@ -196,7 +196,7 @@ class BlankScreen(ttk.Frame):
 
         footer = ttk.Frame(self, style="TFrame")
         footer.pack(side="bottom", fill="x", pady=14, padx=16)
-        ttk.Label(footer, text=f"terminalmk-dl:// {'registered' if config.has_registered_before() else 'not registered yet'}",
+        ttk.Label(footer, text=f"terminal.mk-dl:// {'registered' if config.has_registered_before() else 'not registered yet'}",
                    style="Muted.TLabel").pack(side="left")
         ttk.Button(footer, text="Re-register app", style="Plain.TButton", command=self._reregister).pack(side="right")
 
