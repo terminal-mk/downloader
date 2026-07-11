@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "terminalmk-downloader"
+version = "1.0.0"
+description = "Batch downloader for terminal.mk filing attachments (companion app for the CF view's Download All button)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "terminal.mk" }]
+urls = { Homepage = "https://github.com/terminal-mk/downloader" }
+dependencies = [
+    "requests>=2.28",
+]
+
+[project.optional-dependencies]
+gui = []  # populated once the Tk GUI ships (stdlib tkinter, no extra deps expected)
+
+[project.scripts]
+terminalmk-downloader = "terminalmk_downloader.cli:main"
+terminalmk-downloader-gui = "terminalmk_downloader.gui:main"
+
+[tool.setuptools.packages.find]
+include = ["terminalmk_downloader*"]

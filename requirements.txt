@@ -1,0 +1,8 @@
+requests>=2.28
+
+# GUI (gui.py) uses tkinter, which is part of the Python standard library
+# but ships as a separate OS package on Linux, e.g.:
+#   Debian/Ubuntu: sudo apt install python3-tk
+#   Fedora:        sudo dnf install python3-tkinter
+# Nothing to add here for Windows/macOS -- their python.org installers
+# already include Tk.

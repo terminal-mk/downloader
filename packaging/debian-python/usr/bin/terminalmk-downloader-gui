@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+import sys
+sys.path.insert(0, "/usr/lib/terminalmk-downloader")
+from terminalmk_downloader.gui import main
+if __name__ == "__main__":
+    sys.exit(main())
