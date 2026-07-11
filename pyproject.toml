@@ -19,8 +19,11 @@ dependencies = [
 gui = []  # populated once the Tk GUI ships (stdlib tkinter, no extra deps expected)
 
 [project.scripts]
-terminalmk-downloader = "terminalmk_downloader.cli:main"
-terminalmk-downloader-gui = "terminalmk_downloader.gui:main"
+"terminal.mk-dl" = "terminalmk_downloader.cli:main"
+"terminal.mk-dl-gui" = "terminalmk_downloader.gui:main"
 
 [tool.setuptools.packages.find]
 include = ["terminalmk_downloader*"]
+
+[tool.setuptools.package-data]
+terminalmk_downloader = ["assets/*"]

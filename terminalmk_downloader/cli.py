@@ -1,11 +1,11 @@
 """
-terminalmk-downloader CLI
+terminal.mk-dl CLI
 
 Usage:
-    terminalmk-downloader open <csv-path-or-terminalmk-dl:// URI> [-o DIR] [-j N]
-    terminalmk-downloader csv <path> [-o DIR] [-j N]
-    terminalmk-downloader uri "<terminalmk-dl://...>" [-o DIR] [-j N]
-    terminalmk-downloader register
+    terminal.mk-dl open <csv-path-or-terminalmk-dl:// URI> [-o DIR] [-j N]
+    terminal.mk-dl csv <path> [-o DIR] [-j N]
+    terminal.mk-dl uri "<terminalmk-dl://...>" [-o DIR] [-j N]
+    terminal.mk-dl register
 """
 
 from __future__ import annotations
@@ -15,11 +15,14 @@ import sys
 from pathlib import Path
 
 from . import core, protocol
+from .protocol import DISPLAY_NAME
 from .theme import Ansi
+
+DEFAULT_OUTPUT_DIR = str(Path.home() / "Downloads" / "Terminal MK")
 
 
 def _print_header(ansi: Ansi, batch_name: str, count: int) -> None:
-    print(ansi.bold(ansi.orange("terminal.mk Downloader")))
+    print(ansi.bold(ansi.orange(DISPLAY_NAME)))
     print(ansi.muted(f"Batch: {batch_name}  ·  {count} file(s)"))
     print()
 
@@ -80,7 +83,7 @@ def _run_download(source: str, output_dir: str, concurrency: int, no_color: bool
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="terminalmk-downloader",
+        prog="terminal.mk-dl",
         description=(
             "Batch-downloads filing attachments handed off from terminal.mk's "
             "'Download All' button (CSV file or terminalmk-dl:// link)."
@@ -91,8 +94,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument(
-        "-o", "--output", default=str(Path.home() / "Downloads" / "terminalmk"),
-        help="Directory to save files into (default: ~/Downloads/terminalmk)",
+        "-o", "--output", default=DEFAULT_OUTPUT_DIR,
+        help=f"Directory to save files into (default: {DEFAULT_OUTPUT_DIR})",
     )
     common.add_argument(
         "-j", "--concurrency", type=int, default=core.DEFAULT_CONCURRENCY,

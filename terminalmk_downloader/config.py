@@ -12,7 +12,7 @@ def config_dir() -> Path:
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path.home() / ".config"
-    d = base / "terminalmk-downloader"
+    d = base / "terminal.mk-dl"
     d.mkdir(parents=True, exist_ok=True)
     return d
 

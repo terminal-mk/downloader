@@ -25,6 +25,7 @@ import dataclasses
 import json
 import mimetypes
 import re
+import threading
 import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -39,7 +40,7 @@ REQUEST_TIMEOUT = 30
 MAX_RETRIES = 3
 RETRY_BACKOFF_SECONDS = 1.5
 
-USER_AGENT = "terminalmk-downloader/1.0 (+https://github.com/terminal-mk/downloader)"
+USER_AGENT = "terminal.mk-dl/1.0 (+https://github.com/terminal-mk/downloader)"
 
 
 @dataclasses.dataclass
@@ -201,9 +202,19 @@ def _extension_from_response(resp: requests.Response, link: str) -> str:
     return guessed or ".pdf"  # terminal.mk filings are overwhelmingly PDFs
 
 
-def _download_one(item: DownloadItem, dest_dir: Path, session: requests.Session) -> DownloadResult:
+def _download_one(
+    item: DownloadItem,
+    dest_dir: Path,
+    session: requests.Session,
+    cancel_event: Optional[threading.Event] = None,
+) -> DownloadResult:
+    if cancel_event is not None and cancel_event.is_set():
+        return DownloadResult(item=item, ok=False, error="Cancelled", attempts=0)
+
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
+        if cancel_event is not None and cancel_event.is_set():
+            return DownloadResult(item=item, ok=False, error="Cancelled", attempts=attempt)
         try:
             with session.get(item.link, timeout=REQUEST_TIMEOUT, stream=True) as resp:
                 resp.raise_for_status()
@@ -213,6 +224,10 @@ def _download_one(item: DownloadItem, dest_dir: Path, session: requests.Session)
                 written = 0
                 with open(dest_path, "wb") as f:
                     for chunk in resp.iter_content(chunk_size=65536):
+                        if cancel_event is not None and cancel_event.is_set():
+                            f.close()
+                            dest_path.unlink(missing_ok=True)
+                            return DownloadResult(item=item, ok=False, error="Cancelled", attempts=attempt)
                         if chunk:
                             f.write(chunk)
                             written += len(chunk)
@@ -229,6 +244,7 @@ def download_batch(
     output_dir: str | Path,
     concurrency: int = DEFAULT_CONCURRENCY,
     on_progress: Optional[Callable[[DownloadResult, int, int], None]] = None,
+    cancel_event: Optional[threading.Event] = None,
 ) -> list[DownloadResult]:
     """Download every item in `batch` into output_dir/<batch.name>/.
 
@@ -236,6 +252,13 @@ def download_batch(
     the browser's popup-per-tab dance CF.js has to work around -- no
     tab/window limits apply here). on_progress, if given, is called
     after every completed file with (result, completed_count, total).
+
+    If `cancel_event` is set (from another thread, e.g. a GUI Cancel
+    button) partway through: in-flight files stop writing and are
+    dropped, any not-yet-started files are skipped, and everything
+    still queued is reported back as a "Cancelled" DownloadResult so
+    the caller's progress/summary UI can show what did and didn't make
+    it before the cancel.
     """
     dest_dir = Path(output_dir) / _safe_filename(batch.name)
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -248,12 +271,21 @@ def download_batch(
     session.headers.update({"User-Agent": USER_AGENT})
 
     with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
-        futures = {pool.submit(_download_one, item, dest_dir, session): item for item in batch.items}
+        futures = {
+            pool.submit(_download_one, item, dest_dir, session, cancel_event): item
+            for item in batch.items
+        }
         for future in as_completed(futures):
             result = future.result()
             results.append(result)
             completed += 1
             if on_progress:
                 on_progress(result, completed, total)
+            if cancel_event is not None and cancel_event.is_set():
+                # Stop waiting on the rest; anything still pending in the
+                # pool hasn't started yet and can be dropped outright.
+                for f in futures:
+                    f.cancel()
+                break
 
     return results

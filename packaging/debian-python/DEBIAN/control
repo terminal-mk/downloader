@@ -1,4 +1,4 @@
-Package: terminalmk-downloader
+Package: terminal.mk-dl
 Version: 1.0.0
 Section: utils
 Priority: optional

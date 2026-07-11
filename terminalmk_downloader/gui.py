@@ -1,16 +1,19 @@
 """
-terminal.mk Downloader -- GUI
+Terminal MK - Downloader -- GUI
 
 Flow:
   1. Launched with a terminalmk-dl:// URI or a CSV path as argv[1]
      (that's what the protocol handler / file association passes in)
      -> straight to the review screen.
   2. Launched with no argument (plain double-click)
-     -> blank screen: paste a link, or browse for a CSV.
+     -> blank/home screen: paste a link, or browse for a CSV.
   3. Review screen: flat list, one row per attachment, checkbox per row,
-     Select All / Select None, then Download.
-  4. Progress screen while downloading (threaded, UI stays responsive).
-  5. Summary screen: counts + Open Folder.
+     Select All / Select None, a Back button to return home, then
+     Download.
+  4. Progress screen while downloading (threaded, UI stays responsive),
+     with a Cancel button that stops the batch and shows what did and
+     didn't finish.
+  5. Summary screen: counts + Open Folder + Back to start.
 
 macOS note: launching via a terminalmk-dl:// link (rather than double-
 clicking the .app or opening a CSV) delivers the URL as a Cocoa
@@ -31,12 +34,13 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 from . import config, core, protocol
+from .protocol import DISPLAY_NAME, ICON_PATH
 from .theme import ACCENT_ORANGE, ACCENT_TEAL, ACCENT_WINE, BG, BG_PANEL, BG_SECONDARY, TEXT, TEXT_MUTED
 
 CHECK_ON = "\u2611"   # ☑
 CHECK_OFF = "\u2610"  # ☐
 
-DEFAULT_OUTPUT_DIR = str(Path.home() / "Downloads" / "terminalmk")
+DEFAULT_OUTPUT_DIR = str(Path.home() / "Downloads" / "Terminal MK")
 
 
 def open_in_file_manager(path: Path) -> None:
@@ -52,13 +56,26 @@ def open_in_file_manager(path: Path) -> None:
         pass
 
 
+def _set_app_icon(win: tk.Tk | tk.Toplevel) -> None:
+    """Best-effort app icon: PhotoImage works cross-platform for the
+    taskbar/title-bar icon; the .ico is used separately for PyInstaller/
+    Windows packaging (see build_scripts) since Tk itself only wants PNG."""
+    try:
+        icon_img = tk.PhotoImage(file=ICON_PATH)
+        win.iconphoto(True, icon_img)
+        win._icon_ref = icon_img  # keep a reference so it isn't garbage-collected
+    except Exception:  # noqa: BLE001 - a missing/broken icon file is never fatal
+        pass
+
+
 class App(tk.Tk):
     def __init__(self, source: str | None = None):
         super().__init__()
-        self.title("terminal.mk Downloader")
+        self.title(DISPLAY_NAME)
         self.geometry("900x600")
         self.minsize(700, 480)
         self.configure(bg=BG)
+        _set_app_icon(self)
 
         self._apply_theme()
         self._ensure_registered()
@@ -134,18 +151,21 @@ class App(tk.Tk):
         self.current_screen = screen
         screen.pack(fill="both", expand=True)
 
+    def go_home(self) -> None:
+        self.show(BlankScreen(self.container, self))
+
     def _load_source(self, source: str) -> None:
         try:
             batch = core.load_batch(source)
         except Exception as exc:  # noqa: BLE001
-            messagebox.showerror("terminal.mk Downloader", f"Couldn't read that:\n\n{exc}")
-            self.show(BlankScreen(self.container, self))
+            messagebox.showerror(DISPLAY_NAME, f"Couldn't read that:\n\n{exc}")
+            self.go_home()
             return
         self.show(ReviewScreen(self.container, self, batch))
 
 
 # =============================================================================
-# Blank / drop screen
+# Blank / drop (home) screen
 # =============================================================================
 class BlankScreen(ttk.Frame):
     def __init__(self, parent: tk.Widget, app: App):
@@ -155,7 +175,7 @@ class BlankScreen(ttk.Frame):
         wrap = ttk.Frame(self, style="TFrame")
         wrap.place(relx=0.5, rely=0.42, anchor="center")
 
-        ttk.Label(wrap, text="terminal.mk Downloader", style="Title.TLabel").pack(pady=(0, 4))
+        ttk.Label(wrap, text=DISPLAY_NAME, style="Title.TLabel").pack(pady=(0, 4))
         ttk.Label(
             wrap,
             text="Paste a terminalmk-dl:// link from the site, or open a filings CSV.",
@@ -194,8 +214,8 @@ class BlankScreen(ttk.Frame):
     def _reregister(self) -> None:
         msg = protocol.register(for_gui=True)
         config.mark_registered(msg)
-        messagebox.showinfo("terminal.mk Downloader", msg)
-        self.app.show(BlankScreen(self.app.container, self.app))
+        messagebox.showinfo(DISPLAY_NAME, msg)
+        self.app.go_home()
 
 
 # =============================================================================
@@ -210,6 +230,7 @@ class ReviewScreen(ttk.Frame):
 
         header = ttk.Frame(self, style="TFrame")
         header.pack(fill="x", padx=16, pady=(16, 8))
+        ttk.Button(header, text="\u2190 Back", style="Plain.TButton", command=self._back).pack(side="left", padx=(0, 12))
         ttk.Label(header, text=batch.name, style="Title.TLabel").pack(side="left")
         self.count_label = ttk.Label(header, text="", style="Subtitle.TLabel")
         self.count_label.pack(side="right")
@@ -265,6 +286,9 @@ class ReviewScreen(ttk.Frame):
         self._refresh_count()
 
     # ------------------------------------------------------------------
+    def _back(self) -> None:
+        self.app.go_home()
+
     def _on_row_click(self, event: tk.Event) -> None:
         row_id = self.tree.identify_row(event.y)
         if not row_id:
@@ -306,7 +330,7 @@ class ReviewScreen(ttk.Frame):
     def _start_download(self) -> None:
         selected_items = [self.batch.items[int(iid)] for iid, ok in self.checked.items() if ok]
         if not selected_items:
-            messagebox.showinfo("terminal.mk Downloader", "Select at least one file first.")
+            messagebox.showinfo(DISPLAY_NAME, "Select at least one file first.")
             return
         output_dir = self.output_var.get().strip() or DEFAULT_OUTPUT_DIR
         config.set_output_dir(output_dir)
@@ -326,11 +350,18 @@ class ProgressScreen(ttk.Frame):
         self.output_dir = output_dir
         self.results: list[core.DownloadResult] = []
         self.queue: queue.Queue = queue.Queue()
+        self.cancel_event = threading.Event()
+        self._cancelling = False
 
         wrap = ttk.Frame(self, style="TFrame")
         wrap.pack(fill="both", expand=True, padx=24, pady=24)
 
-        ttk.Label(wrap, text=f"Downloading {batch.name}", style="Title.TLabel").pack(anchor="w")
+        header = ttk.Frame(wrap, style="TFrame")
+        header.pack(fill="x")
+        ttk.Label(header, text=f"Downloading {batch.name}", style="Title.TLabel").pack(side="left")
+        self.cancel_btn = ttk.Button(header, text="Cancel", style="Wine.TButton", command=self._cancel)
+        self.cancel_btn.pack(side="right")
+
         self.status_label = ttk.Label(wrap, text=f"0 of {len(batch.items)}", style="Subtitle.TLabel")
         self.status_label.pack(anchor="w", pady=(4, 12))
 
@@ -347,11 +378,24 @@ class ProgressScreen(ttk.Frame):
         threading.Thread(target=self._run, daemon=True).start()
         self.after(80, self._poll)
 
+    def _cancel(self) -> None:
+        if self._cancelling:
+            return
+        self._cancelling = True
+        self.cancel_event.set()
+        self.cancel_btn.configure(text="Cancelling…", state="disabled")
+        self.status_label.configure(text=f"{self.status_label.cget('text')} -- stopping...")
+
     def _run(self) -> None:
         def on_progress(result: core.DownloadResult, completed: int, total: int) -> None:
             self.queue.put(("progress", result, completed, total))
 
-        core.download_batch(self.batch, output_dir=self.output_dir, on_progress=on_progress)
+        core.download_batch(
+            self.batch,
+            output_dir=self.output_dir,
+            on_progress=on_progress,
+            cancel_event=self.cancel_event,
+        )
         self.queue.put(("done", None, None, None))
 
     def _poll(self) -> None:
@@ -361,7 +405,8 @@ class ProgressScreen(ttk.Frame):
                 if kind == "progress":
                     self.results.append(result)
                     self.progress["value"] = completed
-                    self.status_label.configure(text=f"{completed} of {total}")
+                    suffix = " -- stopping..." if self._cancelling else ""
+                    self.status_label.configure(text=f"{completed} of {total}{suffix}")
                     label = result.item.base_name if result.ok else f"{result.item.base_name} ({result.error})"
                     prefix = "OK   " if result.ok else "FAIL "
                     self.log.insert("end", f"{prefix}{label}")
@@ -375,32 +420,38 @@ class ProgressScreen(ttk.Frame):
 
     def _finish(self) -> None:
         dest_dir = Path(self.output_dir) / self.batch.name
-        self.app.show(SummaryScreen(self.app.container, self.app, self.results, dest_dir))
+        self.app.show(SummaryScreen(self.app.container, self.app, self.results, dest_dir, cancelled=self._cancelling))
 
 
 # =============================================================================
 # Summary screen
 # =============================================================================
 class SummaryScreen(ttk.Frame):
-    def __init__(self, parent: tk.Widget, app: App, results: list[core.DownloadResult], dest_dir: Path):
+    def __init__(self, parent: tk.Widget, app: App, results: list[core.DownloadResult], dest_dir: Path, cancelled: bool = False):
         super().__init__(parent, style="TFrame")
         self.app = app
         self.dest_dir = dest_dir
 
         ok_count = sum(1 for r in results if r.ok)
         fail_count = len(results) - ok_count
+        cancelled_count = sum(1 for r in results if not r.ok and r.error == "Cancelled")
 
         wrap = ttk.Frame(self, style="TFrame")
         wrap.place(relx=0.5, rely=0.38, anchor="center")
 
         style_name = "Title.TLabel"
-        title = f"Downloaded {ok_count} of {len(results)} file(s)"
+        if cancelled:
+            title = f"Cancelled -- {ok_count} of {len(results)} file(s) downloaded"
+        else:
+            title = f"Downloaded {ok_count} of {len(results)} file(s)"
         label = ttk.Label(wrap, text=title, style=style_name)
         label.configure(foreground=ACCENT_TEAL if not fail_count else ACCENT_WINE)
         label.pack(pady=(0, 6))
 
-        if fail_count:
+        if fail_count and not cancelled:
             ttk.Label(wrap, text=f"{fail_count} failed -- see list below", style="Subtitle.TLabel").pack(pady=(0, 12))
+        elif cancelled_count:
+            ttk.Label(wrap, text=f"{cancelled_count} skipped by the cancel", style="Subtitle.TLabel").pack(pady=(0, 12))
 
         ttk.Label(wrap, text=f"Saved to: {self.dest_dir}", style="Muted.TLabel").pack(pady=(0, 16))
 
@@ -408,8 +459,8 @@ class SummaryScreen(ttk.Frame):
         btn_row.pack()
         ttk.Button(btn_row, text="Open folder", style="Teal.TButton",
                    command=lambda: open_in_file_manager(self.dest_dir)).pack(side="left", padx=4)
-        ttk.Button(btn_row, text="Done", style="Plain.TButton",
-                   command=lambda: self.app.show(BlankScreen(self.app.container, self.app))).pack(side="left", padx=4)
+        ttk.Button(btn_row, text="Back to start", style="Plain.TButton",
+                   command=self.app.go_home).pack(side="left", padx=4)
 
         if fail_count:
             fail_frame = ttk.Frame(self, style="Panel.TFrame")

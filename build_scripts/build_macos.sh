@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run on a macOS machine (PyInstaller cannot cross-compile from Linux/Windows).
-# Produces dist/terminalmk-downloader (onefile CLI binary).
+# Produces dist/terminal.mk-dl (onefile CLI binary).
 #
 # NOTE: the terminalmk-dl:// protocol handler on macOS is registered via
 # CFBundleURLTypes in an .app bundle's Info.plist, not at runtime -- that
@@ -15,8 +15,8 @@ pip install --upgrade pip
 pip install -e .
 pip install pyinstaller
 
-pyinstaller build_scripts/terminalmk-downloader-cli.spec --distpath dist --workpath build/pyinstaller --noconfirm
-pyinstaller build_scripts/terminalmk-downloader-gui.spec --distpath dist --workpath build/pyinstaller --noconfirm
+pyinstaller build_scripts/terminal.mk-dl-cli.spec --distpath dist --workpath build/pyinstaller --noconfirm
+pyinstaller build_scripts/terminal.mk-dl-gui.spec --distpath dist --workpath build/pyinstaller --noconfirm
 
-echo "Binaries: dist/terminalmk-downloader, dist/terminalmk-downloader-gui"
+echo "Binaries: dist/terminal.mk-dl, dist/terminal.mk-dl-gui"
 deactivate

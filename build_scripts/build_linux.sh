@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Run on a Linux machine (or CI runner) to produce:
-#   - dist/terminalmk-downloader                (onefile binary)
-#   - packaging/out/terminalmk-downloader_*.deb
-#   - packaging/out/terminalmk-downloader-*.rpm  (if rpmbuild is installed)
+#   - dist/terminal.mk-dl                (onefile binary)
+#   - packaging/out/terminal.mk-dl_*.deb
+#   - packaging/out/terminal.mk-dl-*.rpm  (if rpmbuild is installed)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -12,19 +12,19 @@ pip install --upgrade pip
 pip install -e .
 pip install pyinstaller
 
-pyinstaller build_scripts/terminalmk-downloader-cli.spec --distpath dist --workpath build/pyinstaller --noconfirm
-pyinstaller build_scripts/terminalmk-downloader-gui.spec --distpath dist --workpath build/pyinstaller --noconfirm
+pyinstaller build_scripts/terminal.mk-dl-cli.spec --distpath dist --workpath build/pyinstaller --noconfirm
+pyinstaller build_scripts/terminal.mk-dl-gui.spec --distpath dist --workpath build/pyinstaller --noconfirm
 
-echo "Binaries: dist/terminalmk-downloader, dist/terminalmk-downloader-gui"
+echo "Binaries: dist/terminal.mk-dl, dist/terminal.mk-dl-gui"
 
 # ---- .deb -------------------------------------------------------------
-bash packaging/debian/build_deb.sh dist/terminalmk-downloader
+bash packaging/debian/build_deb.sh dist/terminal.mk-dl
 
 # ---- .rpm (optional, needs rpmbuild) -----------------------------------
 if command -v rpmbuild >/dev/null 2>&1; then
-  bash packaging/rpm/build_rpm.sh dist/terminalmk-downloader
+  bash packaging/rpm/build_rpm.sh dist/terminal.mk-dl
 else
-  echo "rpmbuild not found -- skipping .rpm build. Install rpm-build (Fedora/RHEL: sudo dnf install rpm-build) and rerun, or build on an RPM-based distro using packaging/rpm/terminalmk-downloader.spec"
+  echo "rpmbuild not found -- skipping .rpm build. Install rpm-build (Fedora/RHEL: sudo dnf install rpm-build) and rerun, or build on an RPM-based distro using packaging/rpm/terminal.mk-dl.spec"
 fi
 
 deactivate
