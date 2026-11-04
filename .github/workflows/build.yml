@@ -43,7 +43,7 @@ jobs:
 
       - name: Install and run on each distro
         run: |
-          Xvfb :99 -ac &
+          Xvfb :99 -ac >/dev/null 2>&1 &
           sleep 2
           for image in almalinux:8 rockylinux:9 fedora:latest opensuse/leap:15.6 opensuse/tumbleweed:latest \
                        debian:11 debian:13 ubuntu:22.04 ubuntu:24.04 archlinux:latest; do

@@ -29,5 +29,6 @@ cp "$PKG_SRC/icons/terminal.mk-dl.png" "$STAGE/usr/share/icons/hicolor/256x256/a
 VERSION="$(grep '^Version:' "$PKG_SRC/DEBIAN/control" | awk '{print $2}')"
 OUT_FILE="$OUT_DIR/terminal.mk-dl_${VERSION}_amd64.deb"
 
-dpkg-deb --build --root-owner-group "$STAGE" "$OUT_FILE"
+# xz: newer dpkg-deb defaults to zstd on some distros, which Debian 11 can't read.
+dpkg-deb --build -Zxz --root-owner-group "$STAGE" "$OUT_FILE"
 echo "Built: $OUT_FILE"
