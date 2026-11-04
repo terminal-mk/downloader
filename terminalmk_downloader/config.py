@@ -39,9 +39,14 @@ def has_registered_before() -> bool:
     return bool(load().get("registered"))
 
 
-def mark_registered(message: str) -> None:
+def registered_exec() -> str | None:
+    return load().get("registered_exec")
+
+
+def mark_registered(message: str, exec_path: str) -> None:
     data = load()
     data["registered"] = True
+    data["registered_exec"] = exec_path
     data["registration_message"] = message
     save(data)
 

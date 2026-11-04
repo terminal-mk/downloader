@@ -216,17 +216,21 @@ def register_windows(exec_path: str | None = None, for_gui: bool = True) -> Path
     return reg_path
 
 
+def current_exec_path(for_gui: bool = True) -> str:
+    """The executable that terminal.mk-dl:// links should launch."""
+    if is_frozen():
+        # argv[0] can be relative, and PATH may hold a different copy.
+        return str(Path(sys.executable).resolve())
+    default_name = GUI_APP_NAME if for_gui else APP_NAME
+    return shutil.which(default_name) or shutil.which(APP_NAME) or sys.argv[0]
+
+
 def register(for_gui: bool = True) -> str:
     """Best-effort protocol registration for the current OS. Returns a
     human-readable message describing what happened. Registers the GUI
     as the handler by default, since that's what a double-click / a
     browser-triggered terminal.mk-dl:// link should open."""
-    default_name = GUI_APP_NAME if for_gui else APP_NAME
-    if is_frozen():
-        # argv[0] can be relative, and PATH may hold a different copy.
-        exec_path = str(Path(sys.executable).resolve())
-    else:
-        exec_path = shutil.which(default_name) or shutil.which(APP_NAME) or sys.argv[0]
+    exec_path = current_exec_path(for_gui)
 
     if sys.platform.startswith("linux"):
         path = register_linux(exec_path, for_gui=for_gui)

@@ -1,5 +1,5 @@
 Name:           terminal.mk-dl
-Version:        1.1.4
+Version:        1.1.5
 Release:        1%{?dist}
 Summary:        Batch downloader for terminal.mk filing attachments
 License:        MIT
@@ -98,6 +98,10 @@ if [ "$1" = "0" ]; then
 fi
 
 %changelog
+* Wed Nov 04 2026 terminal.mk <support@terminal.mk> - 1.1.5-1
+- Re-register the terminal.mk-dl:// handler when the executable's path
+  changes, repairing entries left behind by an older install or a move
+  (e.g. a missing icon after upgrading from the pure-Python .deb).
 * Wed Nov 04 2026 terminal.mk <support@terminal.mk> - 1.1.4-1
 - Fixed PyInstaller builds crashing on launch.
 - Package now includes the GUI, and the .desktop entry launches it.

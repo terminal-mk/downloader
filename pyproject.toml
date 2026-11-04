@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "terminalmk-downloader"
-version = "1.1.4"
+version = "1.1.5"
 description = "Batch downloader for terminal.mk filing attachments (companion app for the CF view's Download All button)"
 readme = "README.md"
 requires-python = ">=3.9"

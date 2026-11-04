@@ -180,7 +180,11 @@ class App(_BaseWindow):
         style.configure("TProgressbar", background=ACCENT_TEAL, troughcolor=BG_PANEL, borderwidth=0)
 
     def _ensure_registered(self) -> None:
-        if config.has_registered_before():
+        # Compared against the path, not just "registered once": the app may
+        # have moved, or been reinstalled in a different form, leaving a
+        # handler entry whose Exec or Icon no longer exists.
+        exec_path = protocol.current_exec_path(for_gui=True)
+        if config.registered_exec() == exec_path:
             return
 
         def do_register() -> None:
@@ -188,7 +192,7 @@ class App(_BaseWindow):
                 msg = protocol.register(for_gui=True)
             except Exception as exc:  # noqa: BLE001
                 msg = f"Registration failed: {exc}"
-            config.mark_registered(msg)
+            config.mark_registered(msg, exec_path)
 
         threading.Thread(target=do_register, daemon=True).start()
 
@@ -278,7 +282,7 @@ class BlankScreen(ttk.Frame):
 
     def _reregister(self) -> None:
         msg = protocol.register(for_gui=True)
-        config.mark_registered(msg)
+        config.mark_registered(msg, protocol.current_exec_path(for_gui=True))
         messagebox.showinfo(DISPLAY_NAME, msg)
         self.app.go_home()
 
