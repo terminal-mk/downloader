@@ -1,5 +1,5 @@
 Name:           terminal.mk-dl
-Version:        1.1.3
+Version:        1.1.4
 Release:        1%{?dist}
 Summary:        Batch downloader for terminal.mk filing attachments
 License:        MIT
@@ -98,6 +98,10 @@ if [ "$1" = "0" ]; then
 fi
 
 %changelog
+* Wed Nov 04 2026 terminal.mk <support@terminal.mk> - 1.1.4-1
+- Fixed PyInstaller builds crashing on launch.
+- Package now includes the GUI, and the .desktop entry launches it.
+- Bundle libxcb and libXcursor so the GUI runs without them installed.
 * Sat Jul 11 2026 terminal.mk <support@terminal.mk> - 1.1.3-1
 - GUI: added drag-and-drop support for CSV files on the home screen
   (optional tkinterdnd2 dependency; falls back to Browse/paste-link

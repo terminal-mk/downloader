@@ -123,7 +123,7 @@ build_scripts/build_linux.sh packages
 
 [`.github/workflows/build.yml`](.github/workflows/build.yml) builds and tests every platform, and installs the Linux packages on ten distros. To release:
 
-1. Update the version in `terminalmk_downloader/__init__.py`, `pyproject.toml`, `packaging/debian/DEBIAN/control` and `packaging/rpm/terminal.mk-dl.spec`.
+1. Update the version in `terminalmk_downloader/__init__.py`, `pyproject.toml`, `packaging/debian/DEBIAN/control` and `packaging/rpm/terminal.mk-dl.spec`, plus the `DEBIAN/control` and `__init__.py` copies in `packaging/debian-python/`.
 2. Push a matching tag, such as `v1.2.0`.
 3. Review the draft release that CI creates, then publish it.
 
