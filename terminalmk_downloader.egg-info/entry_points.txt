@@ -1,3 +1,0 @@
-[console_scripts]
-terminal.mk-dl = terminalmk_downloader.cli:main
-terminal.mk-dl-gui = terminalmk_downloader.gui:main

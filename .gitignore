@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv-build/
+build/
+dist/
+packaging/.stage-deb/
+packaging/out/*_amd64.deb
+packaging/out/*.rpm
+packaging/out/*.tar.gz

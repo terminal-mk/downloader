@@ -7,20 +7,23 @@
 #   Linux:    dist/terminal.mk-dl
 
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_submodules
+import os
 
-block_cipher = None
+ROOT = os.path.abspath(os.path.join(SPECPATH, '..'))
 
 a = Analysis(
-    ['../terminalmk_downloader/__main__.py'],
-    pathex=['..'],
+    [os.path.join(SPECPATH, 'entry_cli.py')],
+    pathex=[ROOT],
     binaries=[],
-    datas=[('../terminalmk_downloader/assets', 'terminalmk_downloader/assets')],
-    hiddenimports=collect_submodules('terminalmk_downloader'),
+    datas=[(os.path.join(ROOT, 'terminalmk_downloader', 'assets'), 'terminalmk_downloader/assets')],
+    hiddenimports=[],
     hookspath=[],
     runtime_hooks=[],
-    excludes=[],
+    # The CLI never touches Tk, and leaving it out lets the binary run on
+    # headless machines with a much smaller download.
+    excludes=['tkinter', 'tkinterdnd2'],
     noarchive=False,
+    optimize=2,
 )
 pyz = PYZ(a.pure, a.zipped_data)
 
@@ -28,12 +31,10 @@ exe = EXE(
     pyz,
     a.scripts,
     a.binaries,
-    a.zipfiles,
     a.datas,
     [],
     name='terminal.mk-dl',
     console=True,
-    onefile=True,
     upx=False,
-    icon='../terminalmk_downloader/assets/icon.ico',
+    icon=os.path.join(ROOT, 'terminalmk_downloader', 'assets', 'icon.ico'),
 )

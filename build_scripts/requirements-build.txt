@@ -1,0 +1,5 @@
+# Exact versions used for release builds, so a release can't silently pick
+# up a new dependency. Runtime requirements are in ../requirements.txt.
+pyinstaller==6.22.3
+requests==2.34.2
+tkinterdnd2==0.7.0

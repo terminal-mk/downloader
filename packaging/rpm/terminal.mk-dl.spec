@@ -7,11 +7,21 @@ URL:            https://github.com/terminal-mk/downloader
 BuildArch:      x86_64
 Requires:       glibc
 
-# Expects the PyInstaller onefile binary already built at
-# %{_sourcedir}/terminal.mk-dl (see build_scripts/build_linux.sh), and
-# the icon shipped in this repo at packaging/rpm/icons/terminal.mk-dl.png.
+# rpmbuild's post-install steps strip binaries, which destroys the archive
+# a PyInstaller binary carries. Dependency scanning is off too: everything
+# but glibc is bundled.
+%global __os_install_post %{nil}
+%global debug_package %{nil}
+%global _build_id_links none
+AutoReqProv:    no
+
+# Expects the PyInstaller onefile binaries already built at
+# %{_sourcedir}/terminal.mk-dl and %{_sourcedir}/terminal.mk-dl-gui (see
+# build_scripts/build_linux.sh), and the icon shipped in this repo at
+# packaging/rpm/icons/terminal.mk-dl.png.
 Source0:        terminal.mk-dl
 Source1:        terminal.mk-dl.png
+Source2:        terminal.mk-dl-gui
 
 %description
 Companion app for terminal.mk's CF (Corporate Filings) view. Receives a
@@ -22,6 +32,7 @@ attachment locally, working around browser popup/CORS limits.
 %install
 mkdir -p %{buildroot}/usr/bin
 install -m 755 %{SOURCE0} %{buildroot}/usr/bin/terminal.mk-dl
+install -m 755 %{SOURCE2} %{buildroot}/usr/bin/terminal.mk-dl-gui
 
 mkdir -p %{buildroot}/usr/share/icons/hicolor/256x256/apps
 install -m 644 %{SOURCE1} %{buildroot}/usr/share/icons/hicolor/256x256/apps/terminal.mk-dl.png
@@ -32,9 +43,9 @@ cat > %{buildroot}/usr/share/applications/terminal.mk-dl.desktop <<EOF
 Type=Application
 Name=Terminal MK - Downloader
 Comment=Batch-downloads filing attachments handed off from terminal.mk
-Exec=/usr/bin/terminal.mk-dl open %u
+Exec=/usr/bin/terminal.mk-dl-gui %u
 Terminal=false
-NoDisplay=true
+NoDisplay=false
 Categories=Network;FileTransfer;Utility;
 StartupNotify=false
 Icon=terminal.mk-dl
@@ -43,6 +54,7 @@ EOF
 
 %files
 /usr/bin/terminal.mk-dl
+/usr/bin/terminal.mk-dl-gui
 /usr/share/applications/terminal.mk-dl.desktop
 /usr/share/icons/hicolor/256x256/apps/terminal.mk-dl.png
 

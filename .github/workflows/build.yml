@@ -1,0 +1,169 @@
+# Builds every release binary. A v* tag also creates a DRAFT GitHub release, so
+# the files can be checked before "Publish release" makes them public.
+#
+# This repo is public, and so are these logs and artifacts. The build needs no
+# secrets and touches no terminal.mk service: keep it that way, and keep tests
+# on synthetic data served from 127.0.0.1 (see build_scripts/smoke_test.py).
+name: Build
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - "terminalmk_downloader/**"
+      - "build_scripts/**"
+      - "packaging/debian/**"
+      - "packaging/rpm/**"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build binaries on AlmaLinux 8 (glibc 2.28)
+        run: docker run --rm -v "$PWD:/src" almalinux:8 bash /src/build_scripts/build_linux_container.sh
+
+      - name: Build .tar.gz, .deb and .rpm
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm xvfb
+          bash build_scripts/build_linux.sh packages
+
+      - name: End-to-end test
+        run: python3 -I build_scripts/smoke_test.py dist/terminal.mk-dl
+
+      - name: Install and run on each distro
+        run: |
+          Xvfb :99 -ac &
+          sleep 2
+          for image in almalinux:8 rockylinux:9 fedora:latest opensuse/leap:15.6 opensuse/tumbleweed:latest \
+                       debian:11 debian:13 ubuntu:22.04 ubuntu:24.04 archlinux:latest; do
+            docker run --rm --network none -e DISPLAY=:99 -v /tmp/.X11-unix:/tmp/.X11-unix \
+              -v "$PWD:/src:ro" "$image" sh /src/build_scripts/test_in_distro.sh
+          done
+
+      # Fixed names, so README links to releases/latest/download/ keep working
+      # from one version to the next.
+      - name: Collect release files
+        run: |
+          mkdir release
+          cp packaging/out/terminal.mk-dl_*_amd64.deb release/terminal.mk-dl-linux-amd64.deb
+          cp packaging/out/terminal.mk-dl-*.x86_64.rpm release/terminal.mk-dl-linux-x86_64.rpm
+          cp packaging/out/terminal.mk-dl-*-linux-x86_64.tar.gz release/terminal.mk-dl-linux-x86_64.tar.gz
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux
+          path: release/*
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Build
+        shell: cmd
+        run: build_scripts\build_windows.bat
+
+      - name: End-to-end test
+        run: python -I build_scripts\smoke_test.py dist\terminal.mk-dl.exe
+
+      - name: GUI self-test
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\terminal.mk-dl-gui.exe -ArgumentList '--self-test' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "GUI self-test exited $($p.ExitCode)" }
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows
+          path: |
+            dist/terminal.mk-dl.exe
+            dist/terminal.mk-dl-gui.exe
+          if-no-files-found: error
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The python.org build, because it bundles the Tk 8.6 that tkinterdnd2
+      # has macOS binaries for.
+      - name: Install Python
+        run: |
+          curl -fsSL -o python.pkg https://www.python.org/ftp/python/3.12.10/python-3.12.10-macos11.pkg
+          echo "8373e58da4ea146b3eb1c1f9834f19a319440b6b679b06050b1f9ee3237aa8e4  python.pkg" | shasum -a 256 -c -
+          sudo installer -pkg python.pkg -target /
+
+      - name: Build
+        env:
+          PYTHON: /Library/Frameworks/Python.framework/Versions/3.12/bin/python3
+        run: bash build_scripts/build_macos.sh
+
+      - name: End-to-end test
+        run: python3 -I build_scripts/smoke_test.py dist/terminal.mk-dl
+
+      - name: GUI self-test
+        run: dist/terminal.mk-dl.app/Contents/MacOS/terminal.mk-dl-gui --self-test
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-${{ matrix.arch }}
+          path: dist/release/*
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the tag matches the app version
+        run: |
+          version="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' terminalmk_downloader/__init__.py)"
+          test "$GITHUB_REF_NAME" = "v$version" || { echo "Tag $GITHUB_REF_NAME does not match version $version" >&2; exit 1; }
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd artifacts
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --generate-notes -- *

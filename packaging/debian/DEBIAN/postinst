@@ -11,9 +11,9 @@ cat > "$DESKTOP_FILE" <<EOF
 Type=Application
 Name=Terminal MK - Downloader
 Comment=Batch-downloads filing attachments handed off from terminal.mk
-Exec=/usr/bin/terminal.mk-dl open %u
+Exec=/usr/bin/terminal.mk-dl-gui %u
 Terminal=false
-NoDisplay=true
+NoDisplay=false
 Categories=Network;FileTransfer;Utility;
 StartupNotify=false
 Icon=terminal.mk-dl

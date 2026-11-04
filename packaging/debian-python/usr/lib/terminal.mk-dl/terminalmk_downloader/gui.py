@@ -15,12 +15,10 @@ Flow:
      didn't finish.
   5. Summary screen: counts + Open Folder + Back to start.
 
-macOS note: launching via a terminal.mk-dl:// link (rather than double-
-clicking the .app or opening a CSV) delivers the URL as a Cocoa
-"open URL" Apple Event, not argv -- plain Tkinter doesn't see that. The
-CSV/browse/paste paths below all work fine as-is; wiring up the Apple
-Event needs a small platform hook at .app packaging time (e.g. via
-pyobjc) and is tracked as follow-up work, not blocking this build.
+macOS note: launching via a terminal.mk-dl:// link or opening a CSV with
+the .app delivers it as an Apple Event, not argv. Tk exposes those events
+as the ::tk::mac::LaunchURL and ::tk::mac::OpenDocument commands, which
+App._install_macos_handlers hooks up.
 """
 
 from __future__ import annotations
@@ -87,7 +85,7 @@ def open_in_file_manager(path: Path) -> None:
         elif sys.platform == "darwin":
             subprocess.run(["open", str(path)], check=False)
         else:
-            subprocess.run(["xdg-open", str(path)], check=False)
+            subprocess.run(["xdg-open", str(path)], check=False, env=protocol.external_env())
     except Exception:  # noqa: BLE001 - opening a folder is a nicety, never fatal
         pass
 
@@ -120,10 +118,24 @@ class App(_BaseWindow):
         self.container.pack(fill="both", expand=True)
         self.current_screen: tk.Frame | None = None
 
+        if sys.platform == "darwin":
+            self._install_macos_handlers()
+
         if source:
             self._load_source(source)
         else:
             self.show(BlankScreen(self.container, self))
+
+    # ------------------------------------------------------------------
+    def _install_macos_handlers(self) -> None:
+        def open_sources(*sources: str) -> None:
+            # after_idle: Tk calls these from inside Apple Event handling,
+            # which may be before the first mainloop iteration.
+            if sources and not isinstance(self.current_screen, ProgressScreen):
+                self.after_idle(self._load_source, sources[0])
+
+        self.createcommand("::tk::mac::LaunchURL", open_sources)
+        self.createcommand("::tk::mac::OpenDocument", open_sources)
 
     # ------------------------------------------------------------------
     def _apply_theme(self) -> None:
@@ -548,8 +560,20 @@ class SummaryScreen(ttk.Frame):
                     box.insert("end", f"{r.item.base_name}: {r.item.link}  ({r.error})")
 
 
+def _self_test() -> int:
+    """Used by CI against packaged builds: fails if Tk, the tkdnd native
+    library, or the bundled assets didn't make it into the build."""
+    root = TkinterDnD.Tk()
+    root.withdraw()
+    root.update()
+    root.destroy()
+    return 0 if Path(ICON_PATH).is_file() else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["--self-test"]:
+        return _self_test()
     source = argv[0] if argv else None
     app = App(source=source)
     app.mainloop()

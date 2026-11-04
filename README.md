@@ -1,219 +1,134 @@
- # <img src="terminalmk_downloader/assets/icon_256.png" alt="Terminal MK - Downloader icon" width="28"> Terminal MK - Downloader 
+# <img src="terminalmk_downloader/assets/icon_256.png" alt="" width="28"> Terminal MK - Downloader
 
-Companion desktop app for **terminal.mk**'s CF (Corporate Filings) view.
+Desktop companion for [terminal.mk](https://terminal.mk) that downloads whole batches of filing attachments in one go.
 
-The `Download All` button on `/view/CF` can't reliably batch-download
-dozens/hundreds of attachments from inside a browser (popup caps, no
-resumability, at least one host with no CORS forcing double-downloads).
-Instead, it hands the batch off to this app:
+Browsers are bad at downloading hundreds of files at once, so the **Download All** button on the Corporate Filings view hands the batch to this app. You review the list, pick a folder, and it downloads everything in parallel.
 
-1. **Direct handoff (preferred):** the page tries to open a
-   `terminal.mk-dl://download?d=<payload>` link. This app registers
-   itself as the OS handler for that scheme and, once launched, decodes
-   the payload and downloads every file.
-2. **Fallback:** if nothing answers the custom scheme (app not
-   installed), the page saves a small CSV (`FilingID, Form, Date,
-   AttachmentIndex, Link`) to Downloads instead. Opening that CSV with
-   this app does the same download.
-
-> The `terminal.mk-dl://` scheme itself is a fixed contract with the
-> website's JS and isn't renamed here — only the app's own display name
-> (**Terminal MK - Downloader**) and executable names changed.
+![The review screen, listing attachments with a checkbox for each one](docs/screenshot.png)
 
 ## Download
 
-Grab the package for your OS from the [Releases page](https://github.com/terminal-mk/downloader/releases). Each release attaches these assets — the links below always resolve to whichever release is currently marked "Latest":
+| System | File |
+|---|---|
+| Windows 10/11 (x64) | [`terminal.mk-dl-gui.exe`](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-gui.exe) |
+| macOS, Apple Silicon | [`terminal.mk-dl-macos-arm64.zip`](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-macos-arm64.zip) |
+| macOS, Intel | [`terminal.mk-dl-macos-x86_64.zip`](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-macos-x86_64.zip) |
+| Debian, Ubuntu, Mint, Pop!_OS | [`terminal.mk-dl-linux-amd64.deb`](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-linux-amd64.deb) |
+| Fedora, RHEL, AlmaLinux, Rocky, openSUSE | [`terminal.mk-dl-linux-x86_64.rpm`](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-linux-x86_64.rpm) |
+| Arch, Manjaro, other x86_64 Linux | [`terminal.mk-dl-linux-x86_64.tar.gz`](https://github.com/terminal-mk/downloader/releases/latest/download/terminal.mk-dl-linux-x86_64.tar.gz) |
 
-| OS | File | Link |
-|---|---|---|
-| Linux (.deb, pure-Python, no build step) | `terminal.mk-dl_1.1.3_all.deb` | [Download](https://github.com/terminal-mk/downloader/blob/main/releases/latest/download/terminal.mk-dl_1.1.3_all.deb) |
-| Linux (.rpm) | `terminal.mk-dl-1.1.3-1.x86_64.rpm` | Still not aviable |
-| Windows (.exe) | `terminal.mk-dl-gui.exe` | Still not aviable |
-| macOS (.app, zipped) | `terminal.mk-dl.app.zip` | Still not aviable |
+No Python needed. The Linux builds run on any x86_64 distro with glibc 2.28 or newer.
 
-Older versions (e.g. to pin a specific release) are listed on the [tags/releases page](https://github.com/terminal-mk/downloader/tags) — direct links follow the pattern `https://github.com/terminal-mk/downloader/releases/download/v<version>/<filename>`, e.g. [v1.1.1 `.deb`](https://github.com/terminal-mk/downloader/releases/download/v1.1.1/terminal.mk-dl_1.1.1_all.deb).
-
-> **v1.1.3** adds drag-and-drop of CSV files onto the GUI's home screen (requires `tkinterdnd2`, now a core dependency -- `pip install -e .` pulls it in automatically, and the `.deb` installs it via `postinst` if it's missing), and updates `core.py` to parse the compressed `terminal.mk-dl://download?dz=<base64url zlib-deflated JSON>` payload the site now sends (falls back to the older uncompressed `d=` param automatically).
->
-> **v1.1.1** fixes `terminal.mk-dl://` links not launching the app on a fresh Linux install (see "Known issue" below) — if you installed an earlier `.deb`/`.rpm` and only the CSV fallback has been working, update to this version.
+The [Releases page](https://github.com/terminal-mk/downloader/releases) also has the command-line versions and `SHA256SUMS.txt`, which you can use to verify a download.
 
 ## Install
 
-### From a package (once built for your OS — see "Packaging" below)
-- **Linux (.deb):** `sudo dpkg -i terminal.mk-dl_1.1.3_all.deb`
-- **Linux (.rpm):** `sudo rpm -i terminal.mk-dl-1.1.3-1.x86_64.rpm`
-- **Windows (.exe):** run the onefile binary, then `terminal.mk-dl.exe register` once to claim `terminal.mk-dl://` links.
-- **macOS:** ships with the GUI `.app` (registers the protocol via `Info.plist`); a standalone CLI binary also works for `csv`/`uri` commands without registration.
+| System | How |
+|---|---|
+| Windows | Put the `.exe` where you want to keep it and run it once. |
+| macOS | Unzip, move `terminal.mk-dl.app` to Applications, and open it once. |
+| Debian, Ubuntu | `sudo apt install ./terminal.mk-dl-linux-amd64.deb` |
+| Fedora, RHEL family | `sudo dnf install --nogpgcheck ./terminal.mk-dl-linux-x86_64.rpm` |
+| openSUSE | `sudo rpm -i --nosignature terminal.mk-dl-linux-x86_64.rpm` |
+| Other Linux | Extract the `.tar.gz`, keep the files where you want them, and run `./terminal.mk-dl-gui` once. |
 
-### From source (any OS with Python 3.9+)
+The first run sets the app up to open `terminal.mk-dl://` links. If you move the Windows or `.tar.gz` version later, run it again from its new location.
+
+**Security warnings:** the builds aren't code-signed yet, so the first launch shows a warning.
+
+- **Windows:** choose "More info", then "Run anyway".
+- **macOS:** try to open the app, then go to System Settings → Privacy & Security and choose "Open Anyway".
+
+## Using the app
+
+1. Click **Download All** on terminal.mk. The app opens with the batch loaded.
+2. Untick anything you don't want and choose a destination folder.
+3. Click **Download selected**. You can cancel at any time, and the summary shows what finished and what didn't.
+
+If the app can't be reached from the browser, the site saves a small CSV to your Downloads folder instead. Drag that file onto the app's home screen, or browse to it. You can also paste a `terminal.mk-dl://` link there.
+
+Files are saved as `<FilingID>_<AttachmentIndex>.<ext>`, in a subfolder named after the batch. The default location is `~/Downloads/Terminal MK`.
+
+## Command line
+
 ```bash
+terminal.mk-dl open filings.csv                  # a CSV or a terminal.mk-dl:// link, detected automatically
+terminal.mk-dl csv filings.csv -o ~/filings -j 8
+terminal.mk-dl uri "terminal.mk-dl://download?dz=..."
+terminal.mk-dl register                          # make the CLI the handler for terminal.mk-dl:// links
+```
+
+| Option | Meaning |
+|---|---|
+| `-o`, `--output DIR` | Where to save files (default `~/Downloads/Terminal MK`) |
+| `-j`, `--concurrency N` | Parallel downloads (default 6) |
+| `--no-color` | Plain text output; goes before the subcommand |
+
+| Exit code | Meaning |
+|---|---|
+| `0` | All files downloaded |
+| `1` | The input couldn't be read |
+| `2` | One or more files failed; the rest of the batch still ran |
+
+## Troubleshooting
+
+**Clicking Download All doesn't open the app.** Open the app and click **Re-register app** on the home screen, or run `terminal.mk-dl register`. This also fixes installs older than 1.1.1, and cases where another app took over the link type.
+
+**It still doesn't open on Linux.** Browsers installed as a Snap or Flatpak may not be able to see the app. Use the CSV instead.
+
+**`dpkg-deb: bad permissions` when building.** GitHub's "Download ZIP" drops executable permissions, so use `git clone` instead.
+
+## Development
+
+Requires Python 3.9+ with Tk. On Linux, Tk is a separate system package: `python3-tk` on Debian/Ubuntu, `python3-tkinter` on Fedora.
+
+```bash
+git clone https://github.com/terminal-mk/downloader.git
+cd downloader
 pip install -e .
-terminal.mk-dl register        # claim terminal.mk-dl:// links for this user (CLI-only installs)
-terminal.mk-dl-gui             # launch the GUI (self-registers on first run)
+terminal.mk-dl-gui
 ```
-
-## Usage
-
-```bash
-# Auto-detect a CSV file or a terminal.mk-dl:// URI
-terminal.mk-dl open MK_KMB_..._CF.csv
-terminal.mk-dl open "terminal.mk-dl://download?d=eyJuIjoi..."
-
-# Explicit subcommands (same thing, useful for scripting)
-terminal.mk-dl csv path/to/filings.csv -o ~/Downloads/"Terminal MK" -j 8
-terminal.mk-dl uri "terminal.mk-dl://download?d=..."
-
-# Register/re-register this app as the terminal.mk-dl:// handler
-terminal.mk-dl register
-```
-
-Options:
-- `-o, --output DIR` — where to save files (default `~/Downloads/Terminal MK`); a subfolder named after the batch is created inside it.
-- `-j, --concurrency N` — parallel downloads (default 6).
-- `--no-color` — plain text output (auto-disabled anyway when not attached to a terminal).
-
-Each file is named `<FilingID>_<AttachmentIndex>.<ext>`, with the
-extension detected from the response (`Content-Disposition` / URL /
-`Content-Type`, falling back to `.pdf` since that's what terminal.mk
-filings almost always are).
-
-Exit codes: `0` all files downloaded, `2` one or more failed (details
-printed, nothing else in the batch is aborted), `1` couldn't read the
-input at all.
-
-## GUI
-
-`terminal.mk-dl-gui` (or just double-click the installed app):
-
-- **Launched with a link or CSV** (protocol handoff, or "Open with" on a CSV) → goes straight to a review screen: a flat list, one row per attachment, each with a checkbox (click a row to toggle it). `Select all` / `Select none`, pick a destination folder, `Download selected`. A **← Back** button returns to the home screen without downloading anything.
-- **Launched with nothing** (plain double-click) → a blank home screen to paste a `terminal.mk-dl://` link, browse for a CSV, or **drag and drop a CSV file** onto the drop zone (needs `tkinterdnd2`, a required dependency -- see "Install"/"Packaging" below for how each build gets it).
-- Progress screen while downloading, with a **Cancel** button — any file mid-download is stopped and discarded, anything not yet started is skipped, and you land on a summary showing what did and didn't make it.
-- Summary screen with an `Open folder` button and **Back to start**.
-- Registers itself as the `terminal.mk-dl://` handler automatically the first time it runs (no prompt) — `Re-register app` on the home screen redoes it manually if needed (e.g. after another app steals the association, or after the Chrome/Chromium fix below).
-
-It shares `core.py`, `theme.py`, and `protocol.py` with the CLI — same parsing, same download engine, same colours.
-
-**macOS note:** launching via a `terminal.mk-dl://` link (as opposed to opening a CSV or double-clicking the app) arrives as a Cocoa "open URL" Apple Event, which plain Tkinter doesn't see. The CSV/browse/paste paths work today; wiring up that event needs a small platform hook (e.g. via `pyobjc`) at `.app`-bundling time — noted in `gui.py` and left for the macOS packaging pass.
-
-### Fixed in 1.1.1: `terminal.mk-dl://` links did nothing on a fresh `.deb`/`.rpm` install
-
-Installing the package used to drop a `.desktop` file that only declared
-the app *capable* of handling `terminal.mk-dl://` links, without making
-it the *default* handler for that scheme. The app normally registers
-itself as the default the first time it's actually launched (see
-`protocol.py`), but that self-registration never got a chance to run:
-the OS won't launch an app for a protocol link it has no default for in
-the first place, and `postinst`/`%post` run as root during install with
-no real user `$HOME` to write a per-user default into. The practical
-symptom was exactly "the CSV fallback always works, the direct link
-never does" on a machine where the app had never been opened manually.
-
-Fixed by having `postinst`/`%post` write a **system-wide** default
-into `/usr/share/applications/mimeapps.list` at install time (no
-per-user home directory needed, no prior launch needed) — see the
-comments in `packaging/debian-python/DEBIAN/postinst` and
-`packaging/rpm/terminal.mk-dl.spec`. `prerm`/`%preun` remove that
-default again on uninstall. If you're on an older `.deb`/`.rpm`,
-updating to 1.1.1 (or running `terminal.mk-dl register` manually once)
-picks up the fix.
-
-### Known issue: Chrome / Chromium doesn't pick up the handoff on Linux
-
-Some Linux setups didn't launch the app from the `terminal.mk-dl://` link
-when clicked in Chrome or Chromium (Firefox worked fine, and the CSV
-fallback always worked). The cause: `xdg-mime default` doesn't always
-write to the same `mimeapps.list` copy that Chrome/Chromium reads —
-Chrome queries the association through GIO rather than shelling out to
-`xdg-mime`, and depending on the distro that can mean it's checking a
-different file than the one `xdg-mime` updated.
-
-`register()` (and the `Re-register app` button) now write the
-`[Default Applications]` entry directly into **both**
-`~/.config/mimeapps.list` and
-`~/.local/share/applications/mimeapps.list`, on top of still running
-`xdg-mime`, so both lookup paths agree. If a browser still doesn't
-prompt after re-registering, that's most likely a sandboxed browser
-install (e.g. Chromium via Snap) that can't see
-`~/.local/share/applications` at all — in that case the CSV fallback is
-the reliable path until the sandbox exposes it.
-
-## Colour palette & icon
-
-- text: `#9fb3ca`
-- background: `#2e3b4e`
-- accents: wine `#a52a53`, teal `#26a69a`, orange `#ff8c00`
-
-Defined once in `theme.py` and used by both the CLI's ANSI output and the GUI's `ttk` styling.
-
-The app icon (`terminalmk_downloader/assets/`) is the download glyph on
-a `#cee5fe` background, exported as SVG plus PNG/ICO/ICNS for the
-window icon, `.desktop` icon, and Windows/macOS packaged builds.
 
 ```
 terminalmk_downloader/
-  core.py       # CSV + terminal.mk-dl:// parsing, threaded download engine (cancel-aware)
-  cli.py        # argparse CLI (terminal.mk-dl)
-  gui.py        # Tk GUI (home/review/progress/summary screens, terminal.mk-dl-gui)
-  protocol.py   # OS protocol-handler registration (Linux .desktop + mimeapps.list, Windows .reg)
-  config.py     # first-run marker + remembered output folder
-  theme.py      # shared terminal.mk colour palette
-  assets/       # app icon: icon.svg, icon_*.png, icon.ico, icon.icns
+  core.py       # CSV and link parsing, threaded download engine
+  cli.py        # command-line interface
+  gui.py        # Tk interface
+  protocol.py   # registers the terminal.mk-dl:// link handler on each OS
+  config.py     # first-run marker, remembered output folder
+  theme.py      # shared colour palette
+  assets/       # app icon
+build_scripts/  # PyInstaller specs, build scripts, tests
+packaging/      # .deb and .rpm definitions
 ```
 
-`core.py`, `protocol.py`, and `theme.py` have no CLI- or GUI-specific code
-in them on purpose — both front ends import them directly rather than
-duplicating the download engine, registration logic, or colour palette.
+### Building
 
-**Linux dependency note:** the GUI needs Tk, which on Debian/Ubuntu is a
-separate system package (`python3-tk`) rather than something `pip`
-installs — the `.deb` already lists it as a dependency, and it's called
-out in `requirements.txt`'s comments for from-source installs. The GUI
-also requires `tkinterdnd2` (for CSV drag-and-drop), which *is* a normal
-pip package; `pip install -e .` pulls it in for from-source installs,
-and the `.deb`'s `postinst` installs it automatically if it's missing
-(it isn't packaged for apt, so `Depends:` alone can't cover it).
+PyInstaller can't cross-compile, so each OS has to build its own binaries.
 
-## Packaging
-
-PyInstaller doesn't cross-compile, so each binary has to be built *on*
-its target OS.
-
-| OS | Script | Output |
+| OS | Command | Output |
 |---|---|---|
-| Linux | `build_scripts/build_linux.sh` | `dist/terminal.mk-dl`, `dist/terminal.mk-dl-gui`, plus `.deb`/`.rpm` in `packaging/out/` |
+| Linux | `build_scripts/build_linux.sh` | `dist/`, plus `.tar.gz`, `.deb` and `.rpm` in `packaging/out/` |
 | Windows | `build_scripts\build_windows.bat` | `dist\terminal.mk-dl.exe`, `dist\terminal.mk-dl-gui.exe` |
-| macOS | `build_scripts/build_macos.sh` | `dist/terminal.mk-dl`, `dist/terminal.mk-dl-gui` (`.app` bundling comes with the GUI) |
+| macOS | `build_scripts/build_macos.sh` | `dist/terminal.mk-dl.app`, plus archives in `dist/release/` |
 
-A ready-to-install **pure-Python `.deb`** is already built in this
-delivery at `packaging/out/terminal.mk-dl_1.1.3_all.deb` — it
-runs on the system Python (`Depends: python3, python3-requests, python3-tk`)
-rather than bundling a PyInstaller binary, so it doesn't require a build
-step; install it directly with `sudo dpkg -i ...`. The PyInstaller-based
-`.deb`/`.rpm` (self-contained, no Python dependency) are produced by
-`build_scripts/build_linux.sh` once you run it on a Linux box with
-network access.
-
-### Troubleshooting: `dpkg-deb: bad permissions` when building
-
-If you got this repo via GitHub's **Download ZIP** button rather than
-`git clone`, every file loses its executable bit — GitHub's zip export
-doesn't preserve Unix permissions, only `git clone`/`git archive` do.
-Building `.deb`s (`packaging/debian-python`, `packaging/debian`) needs
-`DEBIAN/postinst`/`DEBIAN/prerm` and the build scripts to be executable,
-so `dpkg-deb --build` will fail with a permissions error until you
-restore them:
+A Linux binary only runs on systems with the glibc it was built against or newer. To build one for other people, use an old base image, then package the result:
 
 ```bash
-chmod 755 packaging/debian-python/DEBIAN/postinst packaging/debian-python/DEBIAN/prerm \
-           packaging/debian/DEBIAN/postinst packaging/debian/DEBIAN/prerm \
-           packaging/debian-python/usr/bin/terminal.mk-dl packaging/debian-python/usr/bin/terminal.mk-dl-gui \
-           build_scripts/*.sh packaging/debian/build_deb.sh packaging/rpm/build_rpm.sh
+docker run --rm -v "$PWD:/src" almalinux:8 bash /src/build_scripts/build_linux_container.sh
+build_scripts/build_linux.sh packages
 ```
 
-`git clone https://github.com/terminal-mk/downloader.git` avoids this
-entirely and is the recommended way to get the source.
+### Releasing
 
-### Protocol registration reference
-- **Linux:** a `.desktop` file with `MimeType=x-scheme-handler/terminal.mk-dl;`, registered via `xdg-mime` *and* written directly into `mimeapps.list` (see the Chrome/Chromium note above). The `.deb`'s `postinst` / the `.rpm`'s `%post` do this automatically at **system level** at install time (`prerm`/`%preun` undo it on removal) — see "Fixed in 1.1.1" above — and `terminal.mk-dl register` does the equivalent per-user for a manual/from-source install.
-- **Windows:** an `HKEY_CURRENT_USER\Software\Classes\terminal.mk-dl` key (written as a `.reg` file by `protocol.py`, imported by `terminal.mk-dl register`).
-- **macOS:** `CFBundleURLTypes` in the `.app`'s `Info.plist` — set at GUI build time, not at runtime.
+[`.github/workflows/build.yml`](.github/workflows/build.yml) builds and tests every platform, and installs the Linux packages on ten distros. To release:
+
+1. Update the version in `terminalmk_downloader/__init__.py`, `pyproject.toml`, `packaging/debian/DEBIAN/control` and `packaging/rpm/terminal.mk-dl.spec`.
+2. Push a matching tag, such as `v1.2.0`.
+3. Review the draft release that CI creates, then publish it.
+
+The repo and its CI logs are public, so keep backend details and secrets out of the code, tests and workflows. Tests use made-up data served from `127.0.0.1`.
+
+## License
+
+MIT

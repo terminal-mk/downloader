@@ -26,6 +26,7 @@ Each OS does this differently:
 from __future__ import annotations
 
 import configparser
+import os
 import shutil
 import subprocess
 import sys
@@ -46,6 +47,39 @@ MIME_TYPE = f"x-scheme-handler/{PROTOCOL_SCHEME}"
 ICON_PATH = str(Path(__file__).resolve().parent / "assets" / "icon_256.png")
 
 
+def is_frozen() -> bool:
+    """True when running from a PyInstaller build rather than from source."""
+    return bool(getattr(sys, "frozen", False))
+
+
+def external_env() -> dict[str, str]:
+    """Environment for launching system tools (xdg-open, xdg-mime, ...).
+
+    PyInstaller points LD_LIBRARY_PATH at the libraries it bundled, which
+    are older than the host's and break host binaries that inherit them.
+    It keeps the original value in LD_LIBRARY_PATH_ORIG."""
+    env = dict(os.environ)
+    if is_frozen():
+        original = env.pop("LD_LIBRARY_PATH_ORIG", None)
+        if original is None:
+            env.pop("LD_LIBRARY_PATH", None)
+        else:
+            env["LD_LIBRARY_PATH"] = original
+    return env
+
+
+def _linux_icon_value() -> str:
+    """Icon= value for the .desktop file. A onefile build unpacks ICON_PATH
+    into a temp dir that disappears on exit, so a frozen build copies it
+    into the user's icon theme and refers to it by name instead."""
+    if not is_frozen():
+        return ICON_PATH
+    icon_dir = Path.home() / ".local" / "share" / "icons" / "hicolor" / "256x256" / "apps"
+    icon_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ICON_PATH, icon_dir / f"{APP_NAME}.png")
+    return APP_NAME
+
+
 def _linux_desktop_entry(exec_path: str, for_gui: bool) -> str:
     exec_line = f'"{exec_path}" %u' if for_gui else f'"{exec_path}" open %u'
     no_display = "false" if for_gui else "true"
@@ -59,7 +93,7 @@ def _linux_desktop_entry(exec_path: str, for_gui: bool) -> str:
         NoDisplay={no_display}
         Categories=Network;FileTransfer;Utility;
         StartupNotify=false
-        Icon={ICON_PATH}
+        Icon={_linux_icon_value()}
         MimeType={MIME_TYPE};
         """)
 
@@ -116,12 +150,13 @@ def register_linux(exec_path: str | None = None, for_gui: bool = True) -> Path:
     desktop_path.chmod(0o755)
 
     if shutil.which("desktop-file-validate"):
-        subprocess.run(["desktop-file-validate", str(desktop_path)], check=False)
+        subprocess.run(["desktop-file-validate", str(desktop_path)], check=False, env=external_env())
 
     if shutil.which("xdg-mime"):
         subprocess.run(
             ["xdg-mime", "default", DESKTOP_FILE_NAME, MIME_TYPE],
             check=False,
+            env=external_env(),
         )
     # Belt-and-suspenders: write mimeapps.list directly too. This is the
     # actual fix for the "worked in Firefox, silently did nothing in
@@ -130,7 +165,7 @@ def register_linux(exec_path: str | None = None, for_gui: bool = True) -> Path:
     _write_mimeapps_default(MIME_TYPE, DESKTOP_FILE_NAME)
 
     if shutil.which("update-desktop-database"):
-        subprocess.run(["update-desktop-database", str(apps_dir)], check=False)
+        subprocess.run(["update-desktop-database", str(apps_dir)], check=False, env=external_env())
 
     return desktop_path
 
@@ -168,7 +203,15 @@ def register_windows(exec_path: str | None = None, for_gui: bool = True) -> Path
     reg_path.write_text(_windows_reg_script(exec_path, for_gui), encoding="utf-8")
 
     if sys.platform.startswith("win") and shutil.which("reg"):
-        subprocess.run(["reg", "import", str(reg_path)], check=False)
+        # CREATE_NO_WINDOW: the windowed GUI build has no console of its own,
+        # so reg.exe would otherwise flash one up.
+        subprocess.run(
+            ["reg", "import", str(reg_path)],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
 
     return reg_path
 
@@ -179,7 +222,11 @@ def register(for_gui: bool = True) -> str:
     as the handler by default, since that's what a double-click / a
     browser-triggered terminal.mk-dl:// link should open."""
     default_name = GUI_APP_NAME if for_gui else APP_NAME
-    exec_path = shutil.which(default_name) or shutil.which(APP_NAME) or sys.argv[0]
+    if is_frozen():
+        # argv[0] can be relative, and PATH may hold a different copy.
+        exec_path = str(Path(sys.executable).resolve())
+    else:
+        exec_path = shutil.which(default_name) or shutil.which(APP_NAME) or sys.argv[0]
 
     if sys.platform.startswith("linux"):
         path = register_linux(exec_path, for_gui=for_gui)
